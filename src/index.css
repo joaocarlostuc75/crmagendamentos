@@ -1,0 +1,37 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Montserrat:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #d4af37;
+  --color-primary-dark: #b8962e;
+  --color-primary-light: #e6c865;
+  --color-background-light: #fdfbf7;
+  --color-background-dark: #121212;
+  --color-surface-light: #ffffff;
+  --color-surface-dark: #1e1e1e;
+  
+  --font-display: "Playfair Display", serif;
+  --font-body: "Montserrat", sans-serif;
+}
+
+@layer base {
+  body {
+    @apply bg-background-light text-gray-900 font-body antialiased;
+  }
+}
+
+.gold-gradient-text {
+  background: linear-gradient(to bottom right, #D4AF37, #F5EFE6, #B8860B);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.luxury-shadow {
+  box-shadow: 0 10px 30px -10px rgba(212, 175, 55, 0.2);
+}
+
+.glass-effect {
+  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.8);
+}
+
