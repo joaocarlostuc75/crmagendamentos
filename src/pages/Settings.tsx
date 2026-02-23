@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Mail, Phone, MapPin, Instagram, Clock, Camera, Save, LogOut, ExternalLink, Shield, AlignLeft, CalendarOff, Plus, Trash2 } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Instagram, Clock, Camera, Save, LogOut, ExternalLink, Shield, AlignLeft, CalendarOff, Plus, Trash2, Truck } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import { useLocalStorage } from '../hooks/useLocalStorage';
@@ -23,6 +23,7 @@ export default function Settings() {
 
   const [newBlockStart, setNewBlockStart] = useState('');
   const [newBlockEnd, setNewBlockEnd] = useState('');
+  const [deliveryFee, setDeliveryFee] = useLocalStorage('delivery_fee', 15.00);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -310,6 +311,32 @@ export default function Settings() {
                 ))}
               </div>
             )}
+          </div>
+
+          {/* Configurações de Loja */}
+          <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-gray-100/50 space-y-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                <Truck size={20} />
+              </div>
+              <h3 className="font-display font-medium text-lg text-gray-900">Configurações de Loja</h3>
+            </div>
+            
+            <div>
+              <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-[0.15em] mb-2 ml-1">Taxa de Entrega Padrão (R$)</label>
+              <div className="relative">
+                <Truck className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                <input 
+                  type="number" 
+                  step="0.01"
+                  value={deliveryFee}
+                  onChange={e => setDeliveryFee(parseFloat(e.target.value) || 0)}
+                  className="w-full pl-12 pr-4 py-3.5 rounded-[1.5rem] border border-gray-100 bg-[#f5f2ed]/50 focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all text-sm text-gray-700"
+                  placeholder="0.00"
+                />
+              </div>
+              <p className="text-[10px] text-gray-400 mt-2 ml-1 italic">* Este valor será aplicado automaticamente aos pedidos com entrega.</p>
+            </div>
           </div>
 
           <div className="flex gap-4">

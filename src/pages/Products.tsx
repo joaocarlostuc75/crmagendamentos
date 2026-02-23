@@ -1,10 +1,11 @@
 import React, { useState, useRef } from 'react';
-import { Search, Plus, Edit2, Trash2, Check, X, ShoppingBag, ShoppingCart, Minus, Image as ImageIcon } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, Check, X, ShoppingBag, ShoppingCart, Minus, Image as ImageIcon, AlertTriangle } from 'lucide-react';
 import WatermarkedImage from '../components/WatermarkedImage';
 import { useLocalStorage } from '../hooks/useLocalStorage';
+import { useSupabaseData } from '../hooks/useSupabase';
 
 export default function Products() {
-  const [products, setProducts] = useLocalStorage<any[]>('products', []);
+  const { data: products, loading, insert, update, remove } = useSupabaseData<any>('products');
   const [searchTerm, setSearchTerm] = useState('');
   const [cart, setCart] = useState<{product: any, quantity: number}[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -18,24 +19,23 @@ export default function Products() {
     paymentMethod: 'pix'
   });
 
-  const handleAddProduct = () => {
+  const handleAddProduct = async () => {
     const newProduct = {
-      id: Date.now().toString(),
       name: "Novo Produto",
       price: 0,
       stock: 0,
       description: "Descrição do produto",
       img_url: ""
     };
-    setProducts([newProduct, ...products]);
+    await insert(newProduct);
   };
 
-  const updateProduct = (id: string, updated: any) => {
-    setProducts(products.map(p => p.id === id ? updated : p));
+  const updateProduct = async (id: string, updated: any) => {
+    await update(id, updated);
   };
 
-  const removeProduct = (id: string) => {
-    setProducts(products.filter(p => p.id !== id));
+  const removeProduct = async (id: string) => {
+    await remove(id);
   };
 
   const filteredProducts = products.filter(p => 
@@ -64,8 +64,9 @@ export default function Products() {
   const cartTotal = cart.reduce((total, item) => total + (item.product.price * item.quantity), 0);
   const finalTotal = cartTotal + (deliveryMethod === 'delivery' ? deliveryFee : 0);
   const cartItemsCount = cart.reduce((count, item) => count + item.quantity, 0);
+  const outOfStockCount = products.filter(p => p.stock <= 0).length;
 
-  const handleCheckout = () => {
+  const handleCheckout = async () => {
     if (cart.length === 0) return;
     
     if (checkoutStep === 'cart') {
@@ -83,14 +84,10 @@ export default function Products() {
     }
 
     // Finalize
-    const updatedProducts = products.map(p => {
-      const cartItem = cart.find(item => item.product.id === p.id);
-      if (cartItem) {
-        return { ...p, stock: Math.max(0, p.stock - cartItem.quantity) };
-      }
-      return p;
-    });
-    setProducts(updatedProducts);
+    for (const item of cart) {
+      const newStock = Math.max(0, item.product.stock - item.quantity);
+      await update(item.product.id, { stock: newStock });
+    }
     
     // Generate WhatsApp Message
     let message = `*Novo Pedido* 🛍️%0A%0A`;
@@ -119,6 +116,14 @@ export default function Products() {
     setCustomerDetails({ name: '', phone: '', address: '', paymentMethod: 'pix' });
   };
 
+  if (loading) {
+    return (
+      <div className="flex-1 flex items-center justify-center p-8">
+        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-full bg-[#f5f2ed]">
       <header className="sticky top-0 z-30 bg-[#f5f2ed]/90 backdrop-blur-xl border-b border-primary/10 px-6 py-5">
@@ -128,6 +133,12 @@ export default function Products() {
             <p className="text-[10px] text-gray-500 uppercase tracking-[0.15em] font-medium mt-0.5">Loja & Estoque</p>
           </div>
           <div className="flex items-center gap-3">
+            {outOfStockCount > 0 && (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-600 rounded-full border border-red-100 animate-pulse">
+                <AlertTriangle size={14} />
+                <span className="text-[10px] font-bold uppercase tracking-wider">{outOfStockCount} Esgotado(s)</span>
+              </div>
+            )}
             <button 
               onClick={() => setIsCartOpen(true)}
               className="relative w-10 h-10 flex items-center justify-center bg-white text-primary rounded-full shadow-sm border border-primary/20 hover:bg-primary/5 transition-all"

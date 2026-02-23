@@ -7,7 +7,7 @@ export default function Schedule() {
   const { data: appointments, loading: loadingAppointments, insert, update, remove } = useSupabaseData<any>('appointments');
   const { data: clients } = useSupabaseData<any>('clients');
   const { data: services } = useSupabaseData<any>('services');
-  const [products] = useLocalStorage<any[]>('products', []);
+  const { data: products } = useSupabaseData<any>('products');
   
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [isAdding, setIsAdding] = useState(false);
