@@ -6,6 +6,8 @@ import { useSupabaseData } from '../hooks/useSupabase';
 
 export default function Products() {
   const { data: products, loading, insert, update, remove } = useSupabaseData<any>('products');
+  const { data: clients } = useSupabaseData<any>('clients');
+  const { insert: insertSale } = useSupabaseData<any>('sales');
   const [searchTerm, setSearchTerm] = useState('');
   const [cart, setCart] = useState<{product: any, quantity: number}[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -16,7 +18,8 @@ export default function Products() {
     name: '',
     phone: '',
     address: '',
-    paymentMethod: 'pix'
+    paymentMethod: 'pix',
+    client_id: ''
   });
 
   const handleAddProduct = async () => {
@@ -87,6 +90,26 @@ export default function Products() {
     for (const item of cart) {
       const newStock = Math.max(0, item.product.stock - item.quantity);
       await update(item.product.id, { stock: newStock });
+    }
+
+    // Record Sale
+    try {
+      await insertSale({
+        client_id: customerDetails.client_id || null,
+        customer_name: customerDetails.name,
+        customer_phone: customerDetails.phone,
+        total_amount: finalTotal,
+        delivery_method: deliveryMethod,
+        payment_method: customerDetails.paymentMethod,
+        items: cart.map(item => ({
+          product_id: item.product.id,
+          name: item.product.name,
+          quantity: item.quantity,
+          price: item.product.price
+        }))
+      });
+    } catch (err) {
+      console.error('Error recording sale:', err);
     }
     
     // Generate WhatsApp Message
@@ -245,6 +268,32 @@ export default function Products() {
                     >
                       Retirada
                     </button>
+                  </div>
+
+                  <div className="space-y-3">
+                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider ml-1">Vincular Cliente (Opcional)</label>
+                    <select 
+                      value={customerDetails.client_id}
+                      onChange={e => {
+                        const client = clients.find((c: any) => c.id === e.target.value);
+                        if (client) {
+                          setCustomerDetails({
+                            ...customerDetails,
+                            client_id: client.id,
+                            name: client.name,
+                            phone: client.phone || ''
+                          });
+                        } else {
+                          setCustomerDetails({...customerDetails, client_id: ''});
+                        }
+                      }}
+                      className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none text-sm bg-white"
+                    >
+                      <option value="">Selecionar Cliente...</option>
+                      {clients?.map((client: any) => (
+                        <option key={client.id} value={client.id}>{client.name}</option>
+                      ))}
+                    </select>
                   </div>
 
                   <input 

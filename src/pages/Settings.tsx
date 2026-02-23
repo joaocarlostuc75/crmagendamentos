@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Mail, Phone, MapPin, Instagram, Clock, Camera, Save, LogOut, ExternalLink, Shield, AlignLeft, CalendarOff, Plus, Trash2, Truck } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Instagram, Clock, Camera, Save, LogOut, ExternalLink, Shield, AlignLeft, CalendarOff, Plus, Trash2, Truck, Copy } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import { useLocalStorage } from '../hooks/useLocalStorage';
@@ -97,6 +97,12 @@ export default function Settings() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate('/login');
+  };
+
+  const copyPublicLink = () => {
+    const link = `${window.location.origin}/public`;
+    navigator.clipboard.writeText(link);
+    alert('Link da loja copiado! Agora você pode colar na sua bio do Instagram.');
   };
 
   if (loading) {
@@ -322,20 +328,44 @@ export default function Settings() {
               <h3 className="font-display font-medium text-lg text-gray-900">Configurações de Loja</h3>
             </div>
             
-            <div>
-              <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-[0.15em] mb-2 ml-1">Taxa de Entrega Padrão (R$)</label>
-              <div className="relative">
-                <Truck className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                <input 
-                  type="number" 
-                  step="0.01"
-                  value={deliveryFee}
-                  onChange={e => setDeliveryFee(parseFloat(e.target.value) || 0)}
-                  className="w-full pl-12 pr-4 py-3.5 rounded-[1.5rem] border border-gray-100 bg-[#f5f2ed]/50 focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all text-sm text-gray-700"
-                  placeholder="0.00"
-                />
+            <div className="space-y-6">
+              <div>
+                <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-[0.15em] mb-2 ml-1">Link Público da Loja (Bio do Instagram)</label>
+                <div className="flex gap-2">
+                  <div className="flex-1 relative">
+                    <ExternalLink className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                    <input 
+                      type="text" 
+                      readOnly
+                      value={`${window.location.origin}/public`}
+                      className="w-full pl-12 pr-4 py-3.5 rounded-[1.5rem] border border-gray-100 bg-gray-50 text-xs text-gray-500 outline-none"
+                    />
+                  </div>
+                  <button 
+                    type="button"
+                    onClick={copyPublicLink}
+                    className="bg-white border border-primary/20 text-primary px-6 rounded-[1.5rem] font-bold text-xs hover:bg-primary/5 transition-all flex items-center gap-2"
+                  >
+                    <Copy size={16} /> Copiar
+                  </button>
+                </div>
               </div>
-              <p className="text-[10px] text-gray-400 mt-2 ml-1 italic">* Este valor será aplicado automaticamente aos pedidos com entrega.</p>
+
+              <div>
+                <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-[0.15em] mb-2 ml-1">Taxa de Entrega Padrão (R$)</label>
+                <div className="relative">
+                  <Truck className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                  <input 
+                    type="number" 
+                    step="0.01"
+                    value={deliveryFee}
+                    onChange={e => setDeliveryFee(parseFloat(e.target.value) || 0)}
+                    className="w-full pl-12 pr-4 py-3.5 rounded-[1.5rem] border border-gray-100 bg-[#f5f2ed]/50 focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all text-sm text-gray-700"
+                    placeholder="0.00"
+                  />
+                </div>
+                <p className="text-[10px] text-gray-400 mt-2 ml-1 italic">* Este valor será aplicado automaticamente aos pedidos com entrega.</p>
+              </div>
             </div>
           </div>
 
