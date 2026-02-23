@@ -1,0 +1,303 @@
+import React, { useState } from 'react';
+import { Search, Plus, Edit2, Trash2, Check, X, ShoppingBag, ShoppingCart, Minus } from 'lucide-react';
+import WatermarkedImage from '../components/WatermarkedImage';
+import { useLocalStorage } from '../hooks/useLocalStorage';
+
+export default function Products() {
+  const [products, setProducts] = useLocalStorage<any[]>('products', []);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [cart, setCart] = useState<{product: any, quantity: number}[]>([]);
+  const [isCartOpen, setIsCartOpen] = useState(false);
+
+  const handleAddProduct = () => {
+    const newProduct = {
+      id: Date.now().toString(),
+      name: "Novo Produto",
+      price: 0,
+      stock: 0,
+      description: "Descrição do produto",
+      img_url: ""
+    };
+    setProducts([newProduct, ...products]);
+  };
+
+  const updateProduct = (id: string, updated: any) => {
+    setProducts(products.map(p => p.id === id ? updated : p));
+  };
+
+  const removeProduct = (id: string) => {
+    setProducts(products.filter(p => p.id !== id));
+  };
+
+  const filteredProducts = products.filter(p => 
+    p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    (p.description && p.description.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+
+  const addToCart = (product: any) => {
+    const existing = cart.find(item => item.product.id === product.id);
+    if (existing) {
+      setCart(cart.map(item => item.product.id === product.id ? { ...item, quantity: item.quantity + 1 } : item));
+    } else {
+      setCart([...cart, { product, quantity: 1 }]);
+    }
+  };
+
+  const removeFromCart = (productId: string) => {
+    const existing = cart.find(item => item.product.id === productId);
+    if (existing && existing.quantity > 1) {
+      setCart(cart.map(item => item.product.id === productId ? { ...item, quantity: item.quantity - 1 } : item));
+    } else {
+      setCart(cart.filter(item => item.product.id !== productId));
+    }
+  };
+
+  const cartTotal = cart.reduce((total, item) => total + (item.product.price * item.quantity), 0);
+  const cartItemsCount = cart.reduce((count, item) => count + item.quantity, 0);
+
+  const handleCheckout = () => {
+    if (cart.length === 0) return;
+    
+    // Update stock
+    const updatedProducts = products.map(p => {
+      const cartItem = cart.find(item => item.product.id === p.id);
+      if (cartItem) {
+        return { ...p, stock: Math.max(0, p.stock - cartItem.quantity) };
+      }
+      return p;
+    });
+    setProducts(updatedProducts);
+    
+    alert(`Venda finalizada com sucesso! Total: R$ ${cartTotal.toFixed(2)}`);
+    setCart([]);
+    setIsCartOpen(false);
+  };
+
+  return (
+    <div className="flex flex-col h-full bg-[#f5f2ed]">
+      <header className="sticky top-0 z-30 bg-[#f5f2ed]/90 backdrop-blur-xl border-b border-primary/10 px-6 py-5">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="font-display text-2xl font-medium text-gray-900 leading-tight">Produtos</h1>
+            <p className="text-[10px] text-gray-500 uppercase tracking-[0.15em] font-medium mt-0.5">Loja & Estoque</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => setIsCartOpen(true)}
+              className="relative w-10 h-10 flex items-center justify-center bg-white text-primary rounded-full shadow-sm border border-primary/20 hover:bg-primary/5 transition-all"
+            >
+              <ShoppingCart size={20} />
+              {cartItemsCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold flex items-center justify-center rounded-full shadow-sm">
+                  {cartItemsCount}
+                </span>
+              )}
+            </button>
+            <button 
+              onClick={handleAddProduct}
+              className="w-10 h-10 flex items-center justify-center bg-primary text-white rounded-full shadow-lg shadow-primary/20 hover:bg-primary-dark transition-all active:scale-95"
+            >
+              <Plus size={20} />
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <main className="flex-1 p-6 space-y-6 pb-32 overflow-y-auto">
+        <div className="relative">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+          <input 
+            type="text" 
+            placeholder="Buscar produto..." 
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-12 pr-4 py-3.5 rounded-[1.5rem] border border-gray-100/50 bg-white shadow-sm focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all text-sm"
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          {filteredProducts.map(product => (
+            <ProductCard 
+              key={product.id}
+              product={product}
+              onUpdate={(updated) => updateProduct(product.id, updated)}
+              onDelete={() => removeProduct(product.id)}
+              onAddToCart={() => addToCart(product)}
+            />
+          ))}
+          {filteredProducts.length === 0 && (
+            <div className="col-span-2 text-center text-gray-500 py-8 text-sm">Nenhum produto encontrado.</div>
+          )}
+        </div>
+      </main>
+
+      {/* Cart Modal */}
+      {isCartOpen && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white w-full sm:w-[400px] sm:rounded-[2rem] rounded-t-[2rem] p-6 shadow-2xl animate-in slide-in-from-bottom-4 duration-300 max-h-[80vh] flex flex-col">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-display font-bold text-gray-900 flex items-center gap-2">
+                <ShoppingCart size={24} className="text-primary" /> Carrinho
+              </h2>
+              <button onClick={() => setIsCartOpen(false)} className="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-50 transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto space-y-4 min-h-[200px]">
+              {cart.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-gray-400 space-y-3">
+                  <ShoppingBag size={48} className="opacity-20" />
+                  <p className="text-sm">Seu carrinho está vazio</p>
+                </div>
+              ) : (
+                cart.map((item, idx) => (
+                  <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-2xl border border-gray-100">
+                    <div className="flex-1 min-w-0 pr-3">
+                      <h4 className="font-medium text-gray-900 text-sm truncate">{item.product.name}</h4>
+                      <p className="text-primary font-semibold text-sm">R$ {item.product.price.toFixed(2)}</p>
+                    </div>
+                    <div className="flex items-center gap-3 bg-white px-2 py-1 rounded-xl shadow-sm border border-gray-100">
+                      <button onClick={() => removeFromCart(item.product.id)} className="text-gray-400 hover:text-primary transition-colors">
+                        <Minus size={16} />
+                      </button>
+                      <span className="text-sm font-medium w-4 text-center">{item.quantity}</span>
+                      <button onClick={() => addToCart(item.product)} className="text-gray-400 hover:text-primary transition-colors">
+                        <Plus size={16} />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="mt-6 pt-6 border-t border-gray-100">
+              <div className="flex justify-between items-center mb-6">
+                <span className="text-gray-500 font-medium">Total</span>
+                <span className="text-2xl font-display font-bold text-primary">R$ {cartTotal.toFixed(2)}</span>
+              </div>
+              <button 
+                onClick={handleCheckout}
+                disabled={cart.length === 0}
+                className="w-full bg-primary hover:bg-primary-dark disabled:bg-gray-200 disabled:text-gray-400 text-white font-medium py-4 rounded-2xl transition-all shadow-lg shadow-primary/20 disabled:shadow-none"
+              >
+                Finalizar Venda
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ProductCard({ product, onUpdate, onDelete, onAddToCart }: any) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState(product);
+
+  const handleSave = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onUpdate({
+      ...editForm,
+      price: parseFloat(editForm.price) || 0,
+      stock: parseInt(editForm.stock) || 0
+    });
+    setIsEditing(false);
+  };
+
+  if (isEditing) {
+    return (
+      <div className="bg-white p-4 rounded-[1.5rem] shadow-sm border border-primary/30 flex flex-col gap-3 col-span-2 sm:col-span-1">
+        <input 
+          type="text" 
+          value={editForm.name || ''} 
+          onChange={e => setEditForm({...editForm, name: e.target.value})}
+          className="w-full border-b border-gray-200 focus:border-primary focus:ring-0 px-0 py-1 font-medium text-gray-900 outline-none text-sm"
+          placeholder="Nome do Produto"
+        />
+        <div className="flex gap-2">
+          <div className="flex-1">
+            <label className="text-[10px] text-gray-400 uppercase tracking-wider">Preço (R$)</label>
+            <input 
+              type="number" 
+              value={editForm.price || ''} 
+              onChange={e => setEditForm({...editForm, price: e.target.value})}
+              className="w-full border-b border-gray-200 focus:border-primary focus:ring-0 px-0 py-1 text-primary font-semibold outline-none text-sm"
+              placeholder="0.00"
+            />
+          </div>
+          <div className="flex-1">
+            <label className="text-[10px] text-gray-400 uppercase tracking-wider">Estoque</label>
+            <input 
+              type="number" 
+              value={editForm.stock || ''} 
+              onChange={e => setEditForm({...editForm, stock: e.target.value})}
+              className="w-full border-b border-gray-200 focus:border-primary focus:ring-0 px-0 py-1 text-gray-600 outline-none text-sm"
+              placeholder="0"
+            />
+          </div>
+        </div>
+        <textarea 
+          value={editForm.description || ''}
+          onChange={e => setEditForm({...editForm, description: e.target.value})}
+          className="w-full border border-gray-200 rounded-xl p-3 text-xs text-gray-600 focus:border-primary focus:ring-0 resize-none h-16 outline-none"
+          placeholder="Descrição..."
+        />
+        <div className="flex justify-between items-center pt-2">
+          <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); if(window.confirm('Excluir produto?')) onDelete(); }} className="p-2 text-red-400 hover:bg-red-50 rounded-full transition-colors">
+            <Trash2 size={16} />
+          </button>
+          <div className="flex gap-2">
+            <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsEditing(false); }} className="p-2 text-gray-400 hover:bg-gray-50 rounded-full transition-colors">
+              <X size={16} />
+            </button>
+            <button onClick={handleSave} className="p-2 text-primary hover:bg-primary/10 rounded-full transition-colors">
+              <Check size={16} />
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white p-4 rounded-[1.5rem] shadow-sm border border-gray-100/50 flex flex-col group relative overflow-hidden">
+      <div className="absolute top-3 right-3 z-10">
+        <button 
+          onClick={() => setIsEditing(true)}
+          className="w-8 h-8 flex items-center justify-center bg-white/90 backdrop-blur-sm text-gray-400 hover:text-primary rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-all"
+        >
+          <Edit2 size={14} />
+        </button>
+      </div>
+      
+      <div className="aspect-square rounded-xl overflow-hidden bg-gray-50 mb-3 relative">
+        <WatermarkedImage src={product.img_url || "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&q=80&w=300&h=300"} alt={product.name} className="w-full h-full object-cover" />
+        {product.stock <= 0 && (
+          <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] flex items-center justify-center">
+            <span className="bg-red-500 text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full">Esgotado</span>
+          </div>
+        )}
+      </div>
+      
+      <div className="flex-1 flex flex-col">
+        <h3 className="font-medium text-sm text-gray-900 line-clamp-1 mb-1">{product.name}</h3>
+        <p className="text-xs text-gray-500 line-clamp-2 mb-3 flex-1">{product.description}</p>
+        
+        <div className="flex items-end justify-between mt-auto">
+          <div>
+            <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Estoque: {product.stock}</p>
+            <p className="text-primary font-bold">R$ {parseFloat(product.price).toFixed(2)}</p>
+          </div>
+          <button 
+            onClick={onAddToCart}
+            disabled={product.stock <= 0}
+            className="w-10 h-10 flex items-center justify-center bg-primary/10 text-primary hover:bg-primary hover:text-white disabled:opacity-50 disabled:hover:bg-primary/10 disabled:hover:text-primary rounded-full transition-colors"
+          >
+            <Plus size={18} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

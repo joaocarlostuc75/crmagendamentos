@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Users, Calendar, Scissors, TrendingUp, Bell, Search, Star } from 'lucide-react';
+import { Users, Calendar, Scissors, TrendingUp, Bell, Search, Star, ChevronRight, Activity } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 export default function Dashboard() {
@@ -45,91 +45,95 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full">
+      <div className="flex items-center justify-center h-full bg-[#f5f2ed]">
         <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-full bg-background-light">
-      <header className="sticky top-0 z-30 bg-background-light/80 glass-effect border-b border-primary/20 px-6 py-4">
+    <div className="flex flex-col h-full bg-[#f5f2ed]">
+      <header className="sticky top-0 z-30 bg-[#f5f2ed]/90 backdrop-blur-xl border-b border-primary/10 px-6 py-5">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
             <Link to="/settings" className="relative group">
-              <div className="w-12 h-12 rounded-2xl overflow-hidden border-2 border-primary/30 shadow-sm transition-transform group-active:scale-95">
+              <div className="w-14 h-14 rounded-full overflow-hidden border border-primary/20 shadow-sm transition-transform group-active:scale-95">
                 <img 
                   src={profile?.logo_url || "https://picsum.photos/100/100"} 
                   alt="Profile" 
                   className="w-full h-full object-cover"
                 />
               </div>
-              <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-primary rounded-full border-2 border-white flex items-center justify-center">
-                <Star size={10} className="text-white fill-white" />
-              </div>
+              <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 rounded-full border-2 border-[#f5f2ed]"></div>
             </Link>
             <div>
-              <h1 className="font-display text-xl font-bold gold-gradient-text leading-tight">Olá, {profile?.owner?.split(' ')[0] || 'Admin'}</h1>
-              <p className="text-[10px] text-gray-500 uppercase tracking-widest font-medium">{profile?.name || 'Studio VIP Gold'}</p>
+              <h1 className="font-display text-2xl font-medium text-gray-900 leading-tight">
+                Olá, <span className="italic text-primary">{profile?.owner?.split(' ')[0] || 'Admin'}</span>
+              </h1>
+              <p className="text-[10px] text-gray-500 uppercase tracking-[0.15em] font-medium mt-0.5">{profile?.name || 'Studio VIP Gold'}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <button className="p-2.5 text-primary/60 hover:text-primary hover:bg-primary/10 rounded-full transition-colors relative">
-              <Bell size={22} />
-              <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+          <div className="flex items-center gap-3">
+            <button className="w-10 h-10 flex items-center justify-center bg-white rounded-full border border-gray-200 text-gray-600 hover:text-primary hover:border-primary/30 transition-all relative shadow-sm">
+              <Bell size={18} />
+              <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-primary rounded-full"></span>
             </button>
           </div>
         </div>
       </header>
 
-      <main className="flex-1 p-6 space-y-8 pb-32">
+      <main className="flex-1 p-6 space-y-8 pb-32 overflow-y-auto">
         {/* Stats Grid */}
         <div className="grid grid-cols-2 gap-4">
-          <StatCard icon={<Users size={20} />} label="Clientes" value={stats.clients.toString()} color="bg-blue-500" />
-          <StatCard icon={<Calendar size={20} />} label="Agenda" value={stats.appointments.toString()} color="bg-emerald-500" />
-          <StatCard icon={<Scissors size={20} />} label="Serviços" value={stats.services.toString()} color="bg-amber-500" />
-          <StatCard icon={<TrendingUp size={20} />} label="Receita" value={stats.revenue} color="bg-primary" />
+          <StatCard icon={<Users size={18} />} label="Clientes" value={stats.clients.toString()} />
+          <StatCard icon={<Calendar size={18} />} label="Agendamentos" value={stats.appointments.toString()} />
+          <StatCard icon={<Scissors size={18} />} label="Serviços" value={stats.services.toString()} />
+          <StatCard icon={<TrendingUp size={18} />} label="Receita" value={stats.revenue} highlight />
         </div>
 
         {/* Quick Actions */}
         <section>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-display font-bold text-gray-800 tracking-tight">Ações Rápidas</h2>
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="font-display text-lg font-medium text-gray-900">Ações Rápidas</h2>
           </div>
           <div className="grid grid-cols-3 gap-4">
-            <QuickAction icon={<Calendar size={24} />} label="Agenda" to="/schedule" />
-            <QuickAction icon={<Users size={24} />} label="Clientes" to="/clients" />
-            <QuickAction icon={<Scissors size={24} />} label="Serviços" to="/services" />
+            <QuickAction icon={<Calendar size={22} />} label="Agenda" to="/schedule" />
+            <QuickAction icon={<Users size={22} />} label="Clientes" to="/clients" />
+            <QuickAction icon={<Scissors size={22} />} label="Serviços" to="/services" />
           </div>
         </section>
 
         {/* Recent Activity */}
         <section>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-display font-bold text-gray-800 tracking-tight">Atividade Recente</h2>
-            <button className="text-xs font-bold text-primary uppercase tracking-widest">Ver Tudo</button>
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="font-display text-lg font-medium text-gray-900">Atividade Recente</h2>
+            <button className="text-[10px] font-bold text-primary uppercase tracking-widest flex items-center gap-1 hover:opacity-70 transition-opacity">
+              Ver Tudo <ChevronRight size={12} />
+            </button>
           </div>
-          <div className="bg-white rounded-3xl p-4 luxury-shadow border border-gray-50 space-y-4">
+          <div className="bg-white rounded-[2rem] p-5 shadow-sm border border-gray-100/50 space-y-5">
             <ActivityItem 
               title="Novo Agendamento" 
               desc="Mariana Oliveira - Cílios Fio a Fio" 
               time="Há 10 min" 
               icon={<Calendar size={16} />}
-              color="bg-emerald-100 text-emerald-600"
+              color="bg-primary/10 text-primary"
             />
+            <div className="h-[1px] w-full bg-gray-50"></div>
             <ActivityItem 
               title="Pagamento Recebido" 
               desc="Beatriz Santos - R$ 180,00" 
               time="Há 45 min" 
               icon={<TrendingUp size={16} />}
-              color="bg-primary/20 text-primary"
+              color="bg-green-50 text-green-600"
             />
+            <div className="h-[1px] w-full bg-gray-50"></div>
             <ActivityItem 
               title="Novo Cliente" 
               desc="Fernanda Lima cadastrada" 
               time="Há 2 horas" 
               icon={<Users size={16} />}
-              color="bg-blue-100 text-blue-600"
+              color="bg-blue-50 text-blue-600"
             />
           </div>
         </section>
@@ -138,15 +142,15 @@ export default function Dashboard() {
   );
 }
 
-function StatCard({ icon, label, value, color }: { icon: React.ReactNode, label: string, value: string, color: string }) {
+function StatCard({ icon, label, value, highlight = false }: { icon: React.ReactNode, label: string, value: string, highlight?: boolean }) {
   return (
-    <div className="bg-white p-5 rounded-[2rem] luxury-shadow border border-gray-50 flex flex-col gap-3">
-      <div className={`w-10 h-10 ${color} rounded-2xl flex items-center justify-center text-white shadow-lg shadow-current/20`}>
+    <div className={`p-5 rounded-[2rem] border transition-all ${highlight ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20' : 'bg-white text-gray-900 border-gray-100/50 shadow-sm'}`}>
+      <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-4 ${highlight ? 'bg-white/20 text-white' : 'bg-gray-50 text-primary border border-gray-100'}`}>
         {icon}
       </div>
       <div>
-        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{label}</p>
-        <p className="text-xl font-bold text-gray-900 tracking-tight">{value}</p>
+        <p className={`text-[10px] uppercase tracking-[0.15em] font-semibold mb-1 ${highlight ? 'text-white/80' : 'text-gray-400'}`}>{label}</p>
+        <p className="text-2xl font-display font-medium tracking-tight">{value}</p>
       </div>
     </div>
   );
@@ -154,9 +158,11 @@ function StatCard({ icon, label, value, color }: { icon: React.ReactNode, label:
 
 function QuickAction({ icon, label, to }: { icon: React.ReactNode, label: string, to: string }) {
   return (
-    <Link to={to} className="bg-white p-4 rounded-3xl luxury-shadow border border-gray-50 flex flex-col items-center gap-2 hover:bg-primary/5 transition-colors group">
-      <div className="text-primary group-hover:scale-110 transition-transform">{icon}</div>
-      <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{label}</span>
+    <Link to={to} className="bg-white p-5 rounded-[2rem] shadow-sm border border-gray-100/50 flex flex-col items-center gap-3 hover:border-primary/30 hover:shadow-md transition-all group">
+      <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+        {icon}
+      </div>
+      <span className="text-[10px] font-semibold text-gray-600 uppercase tracking-widest">{label}</span>
     </Link>
   );
 }
@@ -164,14 +170,14 @@ function QuickAction({ icon, label, to }: { icon: React.ReactNode, label: string
 function ActivityItem({ title, desc, time, icon, color }: { title: string, desc: string, time: string, icon: React.ReactNode, color: string }) {
   return (
     <div className="flex items-center gap-4">
-      <div className={`w-10 h-10 ${color} rounded-xl flex items-center justify-center flex-shrink-0`}>
+      <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${color}`}>
         {icon}
       </div>
       <div className="flex-1 min-w-0">
-        <h4 className="text-sm font-bold text-gray-800 truncate">{title}</h4>
-        <p className="text-xs text-gray-500 truncate">{desc}</p>
+        <h4 className="text-sm font-medium text-gray-900 truncate">{title}</h4>
+        <p className="text-xs text-gray-500 truncate mt-0.5">{desc}</p>
       </div>
-      <span className="text-[10px] font-medium text-gray-400 whitespace-nowrap">{time}</span>
+      <span className="text-[10px] font-medium text-gray-400 whitespace-nowrap uppercase tracking-wider">{time}</span>
     </div>
   );
 }

@@ -5,7 +5,7 @@
   --color-primary: #d4af37;
   --color-primary-dark: #b8962e;
   --color-primary-light: #e6c865;
-  --color-background-light: #fdfbf7;
+  --color-background-light: #f5f2ed;
   --color-background-dark: #121212;
   --color-surface-light: #ffffff;
   --color-surface-dark: #1e1e1e;
@@ -32,6 +32,6 @@
 
 .glass-effect {
   backdrop-filter: blur(10px);
-  background: rgba(255, 255, 255, 0.8);
+  background: rgba(245, 242, 237, 0.8);
 }
 

@@ -31,19 +31,19 @@ export default function Clients() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full">
+      <div className="flex items-center justify-center h-full bg-[#f5f2ed]">
         <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-full bg-background-light">
-      <header className="sticky top-0 z-30 bg-background-light/80 glass-effect border-b border-primary/20 px-6 py-4">
+    <div className="flex flex-col h-full bg-[#f5f2ed]">
+      <header className="sticky top-0 z-30 bg-[#f5f2ed]/90 backdrop-blur-xl border-b border-primary/10 px-6 py-5">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="font-display text-2xl font-bold gold-gradient-text">Clientes</h1>
-            <p className="text-xs text-gray-500 uppercase tracking-widest mt-0.5">Diretório VIP</p>
+            <h1 className="font-display text-2xl font-medium text-gray-900 leading-tight">Clientes</h1>
+            <p className="text-[10px] text-gray-500 uppercase tracking-[0.15em] font-medium mt-0.5">Diretório VIP</p>
           </div>
           <input 
             type="file" 
@@ -54,22 +54,22 @@ export default function Clients() {
           />
           <button 
             onClick={() => fileInputRef.current?.click()}
-            className="bg-primary hover:bg-primary-dark text-white p-2.5 rounded-full shadow-lg transition-transform active:scale-95 flex items-center justify-center"
+            className="w-10 h-10 flex items-center justify-center bg-primary text-white rounded-full shadow-lg shadow-primary/20 hover:bg-primary-dark transition-all active:scale-95"
           >
-            <Plus size={24} />
+            <Plus size={20} />
           </button>
         </div>
       </header>
 
-      <main className="flex-1 p-6 space-y-6 pb-32">
+      <main className="flex-1 p-6 space-y-6 pb-32 overflow-y-auto">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-primary/60" size={20} />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
           <input 
             type="text" 
             placeholder="Buscar por nome ou telefone..." 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 rounded-2xl border-none bg-white shadow-sm focus:ring-2 focus:ring-primary/50"
+            className="w-full pl-12 pr-4 py-3.5 rounded-[1.5rem] border border-gray-100/50 bg-white shadow-sm focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all text-sm"
           />
         </div>
 
@@ -79,11 +79,15 @@ export default function Clients() {
               key={client.id}
               client={client}
               onUpdate={(updated) => update(client.id, updated)}
-              onDelete={() => remove(client.id)}
+              onDelete={() => {
+                remove(client.id).catch(err => {
+                  alert('Não é possível excluir este cliente pois ele está vinculado a agendamentos existentes.');
+                });
+              }}
             />
           ))}
           {filteredClients.length === 0 && (
-            <p className="text-center text-gray-500 py-8">Nenhum cliente encontrado.</p>
+            <p className="text-center text-gray-500 py-8 text-sm">Nenhum cliente encontrado.</p>
           )}
         </div>
       </main>
@@ -110,17 +114,17 @@ function ClientCard({ client, onUpdate, onDelete }: { key?: React.Key, client: a
 
   if (isEditing) {
     return (
-      <div className="bg-white p-5 rounded-3xl shadow-sm border border-primary flex flex-col gap-4">
+      <div className="bg-white p-5 rounded-[2rem] shadow-md border border-primary/30 flex flex-col gap-5">
         <div className="flex items-center gap-4">
-          <div className="h-16 w-16 rounded-2xl overflow-hidden flex-shrink-0 border-2 border-primary/30 relative">
+          <div className="h-16 w-16 rounded-full overflow-hidden flex-shrink-0 border border-primary/20 relative">
             <WatermarkedImage src={editForm.img_url || "https://picsum.photos/150/150"} alt={editForm.name} className="h-full w-full object-cover" />
           </div>
           <div className="flex-1">
             <input 
               type="text" 
-              value={editForm.name} 
+              value={editForm.name || ''} 
               onChange={e => setEditForm({...editForm, name: e.target.value})}
-              className="w-full border-b border-gray-200 focus:border-primary focus:ring-0 px-0 py-1 font-semibold text-lg text-gray-800"
+              className="w-full border-b border-gray-200 focus:border-primary focus:ring-0 px-0 py-1 font-medium text-lg text-gray-900 outline-none"
               placeholder="Nome do Cliente"
             />
           </div>
@@ -130,9 +134,9 @@ function ClientCard({ client, onUpdate, onDelete }: { key?: React.Key, client: a
             <Phone size={14} className="text-primary" />
             <input 
               type="text" 
-              value={editForm.phone} 
+              value={editForm.phone || ''} 
               onChange={e => setEditForm({...editForm, phone: e.target.value})}
-              className="w-full border-none focus:ring-0 p-0 text-sm"
+              className="w-full border-none focus:ring-0 p-0 text-sm outline-none"
               placeholder="Telefone"
             />
           </div>
@@ -140,9 +144,9 @@ function ClientCard({ client, onUpdate, onDelete }: { key?: React.Key, client: a
             <Instagram size={14} className="text-primary" />
             <input 
               type="text" 
-              value={editForm.instagram} 
+              value={editForm.instagram || ''} 
               onChange={e => setEditForm({...editForm, instagram: e.target.value})}
-              className="w-full border-none focus:ring-0 p-0 text-sm"
+              className="w-full border-none focus:ring-0 p-0 text-sm outline-none"
               placeholder="Instagram"
             />
           </div>
@@ -151,23 +155,23 @@ function ClientCard({ client, onUpdate, onDelete }: { key?: React.Key, client: a
           <Mail size={14} className="text-primary" />
           <input 
             type="email" 
-            value={editForm.email} 
+            value={editForm.email || ''} 
             onChange={e => setEditForm({...editForm, email: e.target.value})}
-            className="w-full border-none focus:ring-0 p-0 text-sm"
+            className="w-full border-none focus:ring-0 p-0 text-sm outline-none"
             placeholder="Email"
           />
         </div>
         <textarea 
-          value={editForm.notes}
+          value={editForm.notes || ''}
           onChange={e => setEditForm({...editForm, notes: e.target.value})}
-          className="w-full border border-gray-200 rounded-xl p-3 text-sm text-gray-600 focus:border-primary focus:ring-0 resize-none h-20"
+          className="w-full border border-gray-200 rounded-[1rem] p-4 text-sm text-gray-600 focus:border-primary focus:ring-0 resize-none h-24 outline-none"
           placeholder="Observações e preferências..."
         />
-        <div className="flex justify-end gap-2 pt-2">
-          <button onClick={handleCancel} className="p-2 text-gray-400 hover:text-red-500 rounded-full hover:bg-red-50 transition-colors">
+        <div className="flex justify-end gap-3 pt-2">
+          <button onClick={handleCancel} className="w-10 h-10 flex items-center justify-center text-gray-400 hover:text-red-500 rounded-full hover:bg-red-50 transition-colors">
             <X size={20} />
           </button>
-          <button onClick={handleSave} className="p-2 text-primary hover:text-primary-dark rounded-full hover:bg-primary/10 transition-colors">
+          <button onClick={handleSave} className="w-10 h-10 flex items-center justify-center text-primary hover:text-white rounded-full bg-primary/10 hover:bg-primary transition-colors">
             <Check size={20} />
           </button>
         </div>
@@ -177,40 +181,40 @@ function ClientCard({ client, onUpdate, onDelete }: { key?: React.Key, client: a
 
   return (
     <div 
-      className="bg-white p-5 rounded-3xl shadow-sm border border-primary/20 flex flex-col gap-4 group cursor-pointer transition-all duration-300"
+      className="bg-white p-5 rounded-[2rem] shadow-sm border border-gray-100/50 flex flex-col gap-4 group cursor-pointer hover:border-primary/30 transition-all duration-300"
       onClick={() => setIsExpanded(!isExpanded)}
     >
       <div className="flex items-center gap-4">
-        <div className={`rounded-2xl overflow-hidden flex-shrink-0 border-2 border-primary/30 relative transition-all duration-300 ${isExpanded ? 'h-24 w-24' : 'h-16 w-16'}`}>
+        <div className={`rounded-full overflow-hidden flex-shrink-0 border border-primary/20 relative transition-all duration-300 ${isExpanded ? 'h-20 w-20' : 'h-14 w-14'}`}>
           <WatermarkedImage src={client.img_url || "https://picsum.photos/150/150"} alt={client.name} className="h-full w-full object-cover" />
         </div>
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <div className="flex justify-between items-start">
-            <h3 className="font-semibold text-lg text-gray-800">{client.name}</h3>
+            <h3 className="font-medium text-lg text-gray-900 truncate">{client.name}</h3>
             <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
               <button 
-                className="text-gray-400 hover:text-primary transition-colors p-1"
+                className="text-gray-400 hover:text-primary transition-colors p-1.5 rounded-full hover:bg-gray-50"
                 onClick={(e) => {
                   e.stopPropagation();
                   setIsEditing(true);
                 }}
               >
-                <Edit2 size={18} />
+                <Edit2 size={16} />
               </button>
               <button 
-                className="text-gray-400 hover:text-red-500 transition-colors p-1"
+                className="text-gray-400 hover:text-red-500 transition-colors p-1.5 rounded-full hover:bg-red-50"
                 onClick={(e) => {
                   e.stopPropagation();
                   if (window.confirm('Excluir este cliente?')) onDelete();
                 }}
               >
-                <Trash2 size={18} />
+                <Trash2 size={16} />
               </button>
             </div>
           </div>
           <div className="flex items-center gap-4 mt-1">
-            <div className="flex items-center gap-1 text-xs text-gray-500">
-              <div className="w-2 h-2 rounded-full bg-primary"></div>
+            <div className="flex items-center gap-1.5 text-xs text-gray-500">
+              <div className="w-1.5 h-1.5 rounded-full bg-primary"></div>
               {client.points} pontos
             </div>
             {client.phone && (
@@ -218,13 +222,13 @@ function ClientCard({ client, onUpdate, onDelete }: { key?: React.Key, client: a
             )}
           </div>
         </div>
-        <div className="text-primary/40">
+        <div className="text-gray-300 group-hover:text-primary/50 transition-colors">
           {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
         </div>
       </div>
       
       {isExpanded && (
-        <div className="pt-4 border-t border-gray-100 mt-2 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+        <div className="pt-4 border-t border-gray-50 mt-2 space-y-5 animate-in fade-in slide-in-from-top-2 duration-300">
           <div className="grid grid-cols-1 gap-3">
             {client.phone && (
               <div className="flex items-center gap-3 text-sm text-gray-600">
@@ -246,19 +250,19 @@ function ClientCard({ client, onUpdate, onDelete }: { key?: React.Key, client: a
             )}
           </div>
           {client.notes && (
-            <div className="bg-gray-50 p-3 rounded-2xl text-xs text-gray-500 leading-relaxed italic">
+            <div className="bg-[#f5f2ed] p-4 rounded-[1.5rem] text-xs text-gray-600 leading-relaxed italic border border-gray-100">
               "{client.notes}"
             </div>
           )}
           
           <div className="flex items-center justify-between pt-2">
-            <div className="flex flex-col gap-2 w-full">
+            <div className="flex flex-col gap-3 w-full">
               <div className="flex items-center justify-between w-full">
-                <div className="flex gap-1">
+                <div className="flex gap-1.5">
                   {[...Array(10)].map((_, i) => (
                     <div 
                       key={i} 
-                      className={`w-2 h-2 rounded-full ${i < client.points ? 'bg-primary shadow-[0_0_8px_rgba(212,175,55,0.5)]' : 'bg-gray-200'}`}
+                      className={`w-2.5 h-2.5 rounded-full transition-colors ${i < client.points ? 'bg-primary shadow-[0_0_8px_rgba(212,175,55,0.4)]' : 'bg-gray-100'}`}
                     ></div>
                   ))}
                 </div>
@@ -269,7 +273,7 @@ function ClientCard({ client, onUpdate, onDelete }: { key?: React.Key, client: a
                       const newPoints = Math.max(0, (client.points || 0) - 1);
                       onUpdate({ ...client, points: newPoints });
                     }}
-                    className="p-1 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors"
+                    className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-50 hover:bg-gray-100 text-gray-600 transition-colors border border-gray-100"
                     title="Remover ponto"
                   >
                     <Minus size={14} />
@@ -280,7 +284,7 @@ function ClientCard({ client, onUpdate, onDelete }: { key?: React.Key, client: a
                       const newPoints = Math.min(10, (client.points || 0) + 1);
                       onUpdate({ ...client, points: newPoints });
                     }}
-                    className="p-1 rounded-full bg-primary/10 hover:bg-primary/20 text-primary transition-colors"
+                    className="w-8 h-8 flex items-center justify-center rounded-full bg-primary/10 hover:bg-primary/20 text-primary transition-colors"
                     title="Adicionar ponto"
                   >
                     <Plus size={14} />
@@ -289,7 +293,7 @@ function ClientCard({ client, onUpdate, onDelete }: { key?: React.Key, client: a
               </div>
               
               <div className="flex justify-between items-center">
-                <span className="text-[10px] font-bold text-primary uppercase tracking-widest">
+                <span className="text-[10px] font-semibold text-primary uppercase tracking-[0.15em]">
                   {client.points >= 10 ? '🎉 Bônus Disponível!' : `${10 - (client.points || 0)} para o próximo bônus`}
                 </span>
                 {client.points >= 10 && (
@@ -300,7 +304,7 @@ function ClientCard({ client, onUpdate, onDelete }: { key?: React.Key, client: a
                         onUpdate({ ...client, points: 0 });
                       }
                     }}
-                    className="text-[10px] bg-primary text-white px-2 py-1 rounded-md font-bold uppercase tracking-wider hover:bg-primary-dark transition-colors shadow-sm"
+                    className="text-[10px] bg-primary text-white px-3 py-1.5 rounded-lg font-bold uppercase tracking-wider hover:bg-primary-dark transition-colors shadow-sm"
                   >
                     Resgatar
                   </button>

@@ -11,6 +11,7 @@ import Clients from './pages/Clients';
 import Services from './pages/Services';
 import Financial from './pages/Financial';
 import Settings from './pages/Settings';
+import Products from './pages/Products';
 import PublicPage from './pages/PublicPage';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -31,6 +32,7 @@ export default function App() {
             <Route path="schedule" element={<Schedule />} />
             <Route path="clients" element={<Clients />} />
             <Route path="services" element={<Services />} />
+            <Route path="products" element={<Products />} />
             <Route path="financial" element={<Financial />} />
             <Route path="settings" element={<Settings />} />
           </Route>

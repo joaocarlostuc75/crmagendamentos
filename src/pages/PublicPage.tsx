@@ -16,6 +16,7 @@ export default function PublicPage() {
 
   const [selectedService, setSelectedService] = useState<any>(null);
   const [step, setStep] = useState<'details' | 'datetime' | 'client'>('details');
+  const [isManageModalOpen, setIsManageModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
   const [clientName, setClientName] = useState('');
@@ -149,6 +150,12 @@ export default function PublicPage() {
                 <a href={`https://wa.me/${(profile.phone || '').replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="flex-1 bg-primary text-white py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-primary/20 hover:bg-primary-dark transition-all">
                   <Phone size={14} /> Contato
                 </a>
+                <button 
+                  onClick={() => setIsManageModalOpen(true)}
+                  className="flex-1 bg-white text-primary border border-primary/20 py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-sm hover:bg-primary/5 transition-all"
+                >
+                  <CalendarIcon size={14} /> Meus Agendamentos
+                </button>
                 <a href={`https://instagram.com/${(profile.instagram || '').replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="w-11 h-11 bg-gray-50 text-gray-400 rounded-xl flex items-center justify-center hover:bg-primary/10 hover:text-primary transition-all border border-gray-100">
                   <Instagram size={18} />
                 </a>
@@ -391,6 +398,42 @@ export default function PublicPage() {
                   </button>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Manage Appointments Modal */}
+      {isManageModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 backdrop-blur-sm sm:items-center">
+          <div className="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh] animate-in slide-in-from-bottom-full sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-300">
+            <div className="flex justify-between items-center p-4 border-b border-gray-100 sticky top-0 bg-white z-10">
+              <h3 className="font-display font-bold text-lg text-gray-900">Gerenciar Agendamento</h3>
+              <button onClick={() => setIsManageModalOpen(false)} className="p-2 bg-gray-100 rounded-full text-gray-500 hover:bg-gray-200 transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <p className="text-gray-600 text-sm text-center mb-6">
+                Como deseja prosseguir com o seu agendamento? Você será redirecionado para o nosso WhatsApp.
+              </p>
+              <a 
+                href={`https://wa.me/${(profile.phone || '').replace(/\D/g, '')}?text=Olá! Gostaria de remarcar meu agendamento.`}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setIsManageModalOpen(false)}
+                className="w-full bg-primary text-white py-4 rounded-2xl font-bold text-lg shadow-lg shadow-primary/30 hover:bg-primary-dark transition-colors flex items-center justify-center gap-2"
+              >
+                <CalendarIcon size={20} /> Remarcar Horário
+              </a>
+              <a 
+                href={`https://wa.me/${(profile.phone || '').replace(/\D/g, '')}?text=Olá! Gostaria de cancelar meu agendamento.`}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setIsManageModalOpen(false)}
+                className="w-full bg-white text-red-500 border border-red-200 py-4 rounded-2xl font-bold text-lg hover:bg-red-50 transition-colors flex items-center justify-center gap-2"
+              >
+                <X size={20} /> Cancelar Agendamento
+              </a>
             </div>
           </div>
         </div>

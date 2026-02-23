@@ -1,8 +1,11 @@
-import { Bell, TrendingUp, Eye, Sparkles, Brush } from 'lucide-react';
+import { useState } from 'react';
+import { Bell, TrendingUp, Eye, Sparkles, Brush, ShoppingBag } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import WatermarkedImage from '../components/WatermarkedImage';
 
 export default function Financial() {
+  const [period, setPeriod] = useState<'semanal' | 'mensal' | 'anual'>('semanal');
+
   return (
     <div className="flex flex-col h-full bg-background-light">
       <header className="sticky top-0 z-50 px-6 pt-12 pb-4 bg-background-light/80 glass-effect">
@@ -19,17 +22,34 @@ export default function Financial() {
 
       <main className="px-6 space-y-8 pb-32">
         <div className="flex p-1 bg-primary/10 rounded-xl">
-          <button className="flex-1 py-2 text-sm font-medium rounded-lg bg-white shadow-sm text-primary-dark">Semanal</button>
-          <button className="flex-1 py-2 text-sm font-medium text-gray-500">Mensal</button>
-          <button className="flex-1 py-2 text-sm font-medium text-gray-500">Anual</button>
+          <button 
+            onClick={() => setPeriod('semanal')}
+            className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${period === 'semanal' ? 'bg-white shadow-sm text-primary-dark' : 'text-gray-500 hover:text-primary-dark'}`}
+          >
+            Semanal
+          </button>
+          <button 
+            onClick={() => setPeriod('mensal')}
+            className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${period === 'mensal' ? 'bg-white shadow-sm text-primary-dark' : 'text-gray-500 hover:text-primary-dark'}`}
+          >
+            Mensal
+          </button>
+          <button 
+            onClick={() => setPeriod('anual')}
+            className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${period === 'anual' ? 'bg-white shadow-sm text-primary-dark' : 'text-gray-500 hover:text-primary-dark'}`}
+          >
+            Anual
+          </button>
         </div>
 
         <div className="relative overflow-hidden bg-white rounded-xl p-6 luxury-shadow border border-primary/10">
-          <p className="text-sm text-gray-500 mb-1">Faturamento Total</p>
+          <p className="text-sm text-gray-500 mb-1">Faturamento Total ({period})</p>
           <div className="flex items-baseline gap-2 mb-6">
-            <span className="text-4xl font-display font-bold text-gray-900">R$ 14.850,00</span>
+            <span className="text-4xl font-display font-bold text-gray-900">
+              {period === 'semanal' ? 'R$ 3.450,00' : period === 'mensal' ? 'R$ 14.850,00' : 'R$ 178.200,00'}
+            </span>
             <span className="text-emerald-500 text-sm font-semibold flex items-center">
-              <TrendingUp size={14} className="mr-1" /> 12%
+              <TrendingUp size={14} className="mr-1" /> {period === 'semanal' ? '8%' : period === 'mensal' ? '12%' : '24%'}
             </span>
           </div>
 
@@ -43,7 +63,13 @@ export default function Financial() {
             <div className="w-full bg-primary/20 rounded-t-sm h-[75%] hover:bg-primary transition-colors cursor-pointer"></div>
           </div>
           <div className="flex justify-between mt-2 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">
-            <span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sab</span><span>Dom</span>
+            {period === 'semanal' ? (
+              <><span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sab</span><span>Dom</span></>
+            ) : period === 'mensal' ? (
+              <><span>S1</span><span>S2</span><span>S3</span><span>S4</span></>
+            ) : (
+              <><span>Jan</span><span>Fev</span><span>Mar</span><span>Abr</span><span>Mai</span><span>Jun</span></>
+            )}
           </div>
         </div>
 
@@ -51,11 +77,11 @@ export default function Financial() {
           <div className="bg-white p-5 rounded-xl border-l-4 border-primary shadow-sm">
             <p className="text-[10px] uppercase tracking-widest text-primary-dark font-bold mb-2">Ticket Médio</p>
             <p className="text-xl font-display font-bold">R$ 215,00</p>
-            <p className="text-[10px] text-gray-400 mt-1">+R$ 15,00 vs mês ant.</p>
+            <p className="text-[10px] text-gray-400 mt-1">+R$ 15,00 vs ant.</p>
           </div>
           <div className="bg-white p-5 rounded-xl border-l-4 border-primary shadow-sm">
             <p className="text-[10px] uppercase tracking-widest text-primary-dark font-bold mb-2">Novo Clientes</p>
-            <p className="text-xl font-display font-bold">42</p>
+            <p className="text-xl font-display font-bold">{period === 'semanal' ? '12' : period === 'mensal' ? '42' : '450'}</p>
             <p className="text-[10px] text-emerald-500 mt-1">Meta atingida!</p>
           </div>
         </div>
@@ -102,6 +128,29 @@ export default function Financial() {
               revenue="R$ 3.970" 
               percentage={27} 
               icon={<Brush size={20} className="text-primary-dark" />} 
+            />
+          </div>
+        </section>
+
+        <section>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-display font-bold text-gray-900">Receita por Produto</h2>
+            <Link to="/products" className="text-xs font-semibold text-primary-dark uppercase tracking-wider">Ver todos</Link>
+          </div>
+          <div className="space-y-4">
+            <ServiceRevenueCard 
+              name="Perfume Capilar" 
+              count="24 Unidades" 
+              revenue="R$ 1.200" 
+              percentage={60} 
+              icon={<ShoppingBag size={20} className="text-primary-dark" />} 
+            />
+            <ServiceRevenueCard 
+              name="Sérum Crescimento" 
+              count="15 Unidades" 
+              revenue="R$ 800" 
+              percentage={40} 
+              icon={<ShoppingBag size={20} className="text-primary-dark" />} 
             />
           </div>
         </section>
