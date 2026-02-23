@@ -22,7 +22,7 @@ export default function Login() {
       });
 
       if (error) throw error;
-      navigate('/');
+      navigate('/app');
     } catch (err: any) {
       setError(err.message || 'Erro ao fazer login');
     } finally {

@@ -13,13 +13,13 @@ export default function Layout() {
       <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[95%] max-w-md">
         <nav className="bg-white/80 backdrop-blur-2xl border border-white/40 px-2 py-3 flex justify-between items-center rounded-[2rem] shadow-[0_8px_32px_-8px_rgba(0,0,0,0.15)]">
           <div className="flex justify-between items-center w-full px-1 sm:px-2 gap-1">
-            <NavItem to="/" icon={<Home size={20} />} label="Início" />
-            <NavItem to="/schedule" icon={<CalendarHeart size={20} />} label="Agenda" />
-            <NavItem to="/clients" icon={<Users size={20} />} label="Clientes" />
-            <NavItem to="/services" icon={<Sparkles size={20} />} label="Serviços" />
-            <NavItem to="/products" icon={<ShoppingBag size={20} />} label="Loja" />
-            <NavItem to="/financial" icon={<LineChart size={20} />} label="Relatos" />
-            <NavItem to="/settings" icon={<Settings size={20} />} label="Ajustes" />
+            <NavItem to="/app" icon={<Home size={20} />} label="Início" />
+            <NavItem to="/app/schedule" icon={<CalendarHeart size={20} />} label="Agenda" />
+            <NavItem to="/app/clients" icon={<Users size={20} />} label="Clientes" />
+            <NavItem to="/app/services" icon={<Sparkles size={20} />} label="Serviços" />
+            <NavItem to="/app/products" icon={<ShoppingBag size={20} />} label="Loja" />
+            <NavItem to="/app/financial" icon={<LineChart size={20} />} label="Relatos" />
+            <NavItem to="/app/settings" icon={<Settings size={20} />} label="Ajustes" />
           </div>
         </nav>
       </div>

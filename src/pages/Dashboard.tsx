@@ -56,7 +56,7 @@ export default function Dashboard() {
       <header className="sticky top-0 z-30 bg-[#f5f2ed]/90 backdrop-blur-xl border-b border-primary/10 px-6 py-5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link to="/settings" className="relative group">
+            <Link to="/app/settings" className="relative group">
               <div className="w-14 h-14 rounded-full overflow-hidden border border-primary/20 shadow-sm transition-transform group-active:scale-95">
                 <img 
                   src={profile?.logo_url || "https://picsum.photos/100/100"} 
@@ -97,9 +97,9 @@ export default function Dashboard() {
             <h2 className="font-display text-lg font-medium text-gray-900">Ações Rápidas</h2>
           </div>
           <div className="grid grid-cols-3 gap-4">
-            <QuickAction icon={<Calendar size={22} />} label="Agenda" to="/schedule" />
-            <QuickAction icon={<Users size={22} />} label="Clientes" to="/clients" />
-            <QuickAction icon={<Scissors size={22} />} label="Serviços" to="/services" />
+            <QuickAction icon={<Calendar size={22} />} label="Agenda" to="/app/schedule" />
+            <QuickAction icon={<Users size={22} />} label="Clientes" to="/app/clients" />
+            <QuickAction icon={<Scissors size={22} />} label="Serviços" to="/app/services" />
           </div>
         </section>
 
