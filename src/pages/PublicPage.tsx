@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { MapPin, Phone, Instagram, Clock, Star, ChevronRight, X, Calendar as CalendarIcon, User } from 'lucide-react';
 import WatermarkedImage from '../components/WatermarkedImage';
 import { useLocalStorage } from '../hooks/useLocalStorage';
@@ -53,6 +53,8 @@ const initialServices = [
 export default function PublicPage() {
   const [profile] = useLocalStorage('beauty_agenda_profile', initialProfile);
   const [services] = useLocalStorage('beauty_agenda_services', initialServices);
+  const [searchParams] = useSearchParams();
+  const referralCode = searchParams.get('ref');
 
   const [selectedService, setSelectedService] = useState<any>(null);
   const [step, setStep] = useState<'details' | 'datetime' | 'client'>('details');
@@ -77,7 +79,12 @@ export default function PublicPage() {
   const handleConfirm = () => {
     const dateObj = new Date(selectedDate + 'T00:00:00');
     const formattedDate = dateObj.toLocaleDateString('pt-BR');
-    const message = `Olá! Gostaria de confirmar meu agendamento.%0A%0A*Detalhes do Cliente:*%0ANome: ${clientName}%0AWhatsApp: ${clientPhone}%0A%0A*Detalhes do Serviço:*%0AServiço: ${selectedService.name}%0AData: ${formattedDate}%0AHorário: ${selectedTime}%0AValor: ${selectedService.price}`;
+    let message = `Olá! Gostaria de confirmar meu agendamento.%0A%0A*Detalhes do Cliente:*%0ANome: ${clientName}%0AWhatsApp: ${clientPhone}%0A%0A*Detalhes do Serviço:*%0AServiço: ${selectedService.name}%0AData: ${formattedDate}%0AHorário: ${selectedTime}%0AValor: ${selectedService.price}`;
+    
+    if (referralCode) {
+      message += `%0A%0A*Indicação:* ${referralCode}`;
+    }
+
     window.open(`https://wa.me/${profile.phone.replace(/\D/g, '')}?text=${message}`, '_blank');
     closeModal();
   };

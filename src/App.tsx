@@ -13,6 +13,8 @@ import Financial from './pages/Financial';
 import Settings from './pages/Settings';
 import PublicPage from './pages/PublicPage';
 import Login from './pages/Login';
+import Register from './pages/Register';
+import ForgotPassword from './pages/ForgotPassword';
 import ProtectedRoute from './components/ProtectedRoute';
 
 export default function App() {
@@ -21,6 +23,8 @@ export default function App() {
       <Routes>
         <Route path="/public" element={<PublicPage />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route element={<ProtectedRoute />}>
           <Route path="/" element={<Layout />}>
             <Route index element={<Dashboard />} />

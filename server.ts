@@ -5,6 +5,14 @@ import helmet from 'helmet';
 import cors from 'cors';
 import { createServer as createViteServer } from 'vite';
 
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -14,21 +22,9 @@ async function startServer() {
 
   // 1. Security Headers (Helmet)
   app.use(helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://apis.google.com"],
-        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-        imgSrc: ["'self'", "data:", "https://images.unsplash.com", "https://picsum.photos", "https://*.supabase.co"],
-        connectSrc: ["'self'", "https://*.supabase.co", "https://*.google.com", "wss://*.supabase.co"],
-        fontSrc: ["'self'", "https://fonts.gstatic.com"],
-        objectSrc: ["'none'"],
-        mediaSrc: ["'self'"],
-        frameSrc: ["'self'", "https://*.supabase.co"],
-        upgradeInsecureRequests: [],
-      },
-    },
-    crossOriginEmbedderPolicy: false, // Required for some external images
+    contentSecurityPolicy: false,
+    frameguard: false,
+    crossOriginEmbedderPolicy: false,
     crossOriginResourcePolicy: { policy: "cross-origin" },
     referrerPolicy: { policy: "strict-origin-when-cross-origin" },
   }));
@@ -52,11 +48,15 @@ async function startServer() {
 
   // 5. Vite Integration or Static Files
   if (process.env.NODE_ENV !== 'production') {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: 'spa',
-    });
-    app.use(vite.middlewares);
+    try {
+      const vite = await createViteServer({
+        server: { middlewareMode: true },
+        appType: 'spa',
+      });
+      app.use(vite.middlewares);
+    } catch (e) {
+      console.error('Failed to create Vite server:', e);
+    }
   } else {
     app.use(express.static(path.join(__dirname, 'dist')));
     app.get('*', (req, res) => {

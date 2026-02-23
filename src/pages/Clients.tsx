@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { Search, Plus, Phone, Instagram, Mail, Edit2, Trash2, Check, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { Search, Plus, Phone, Instagram, Mail, Edit2, Trash2, Check, X, ChevronDown, ChevronUp, Minus } from 'lucide-react';
 import WatermarkedImage from '../components/WatermarkedImage';
 import { useSupabaseData } from '../hooks/useSupabase';
 
@@ -252,17 +252,61 @@ function ClientCard({ client, onUpdate, onDelete }: { key?: React.Key, client: a
           )}
           
           <div className="flex items-center justify-between pt-2">
-            <div className="flex gap-1">
-              {[...Array(10)].map((_, i) => (
-                <div 
-                  key={i} 
-                  className={`w-2 h-2 rounded-full ${i < client.points ? 'bg-primary shadow-[0_0_8px_rgba(212,175,55,0.5)]' : 'bg-gray-200'}`}
-                ></div>
-              ))}
+            <div className="flex flex-col gap-2 w-full">
+              <div className="flex items-center justify-between w-full">
+                <div className="flex gap-1">
+                  {[...Array(10)].map((_, i) => (
+                    <div 
+                      key={i} 
+                      className={`w-2 h-2 rounded-full ${i < client.points ? 'bg-primary shadow-[0_0_8px_rgba(212,175,55,0.5)]' : 'bg-gray-200'}`}
+                    ></div>
+                  ))}
+                </div>
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const newPoints = Math.max(0, (client.points || 0) - 1);
+                      onUpdate({ ...client, points: newPoints });
+                    }}
+                    className="p-1 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors"
+                    title="Remover ponto"
+                  >
+                    <Minus size={14} />
+                  </button>
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const newPoints = Math.min(10, (client.points || 0) + 1);
+                      onUpdate({ ...client, points: newPoints });
+                    }}
+                    className="p-1 rounded-full bg-primary/10 hover:bg-primary/20 text-primary transition-colors"
+                    title="Adicionar ponto"
+                  >
+                    <Plus size={14} />
+                  </button>
+                </div>
+              </div>
+              
+              <div className="flex justify-between items-center">
+                <span className="text-[10px] font-bold text-primary uppercase tracking-widest">
+                  {client.points >= 10 ? '🎉 Bônus Disponível!' : `${10 - (client.points || 0)} para o próximo bônus`}
+                </span>
+                {client.points >= 10 && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (window.confirm('Confirmar resgate do bônus? Os pontos serão zerados.')) {
+                        onUpdate({ ...client, points: 0 });
+                      }
+                    }}
+                    className="text-[10px] bg-primary text-white px-2 py-1 rounded-md font-bold uppercase tracking-wider hover:bg-primary-dark transition-colors shadow-sm"
+                  >
+                    Resgatar
+                  </button>
+                )}
+              </div>
             </div>
-            <span className="text-[10px] font-bold text-primary uppercase tracking-widest">
-              {10 - client.points} para o próximo bônus
-            </span>
           </div>
         </div>
       )}
