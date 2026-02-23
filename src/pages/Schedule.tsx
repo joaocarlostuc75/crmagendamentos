@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { Calendar as CalendarIcon, Clock, Plus, Filter, ChevronLeft, ChevronRight, X, Check, User, Scissors, Trash2, MessageCircle, ShoppingBag } from 'lucide-react';
 import { useSupabaseData } from '../hooks/useSupabase';
+import { useLocalStorage } from '../hooks/useLocalStorage';
 
 export default function Schedule() {
   const { data: appointments, loading: loadingAppointments, insert, update, remove } = useSupabaseData<any>('appointments');
   const { data: clients } = useSupabaseData<any>('clients');
   const { data: services } = useSupabaseData<any>('services');
+  const [products] = useLocalStorage<any[]>('products', []);
   
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [isAdding, setIsAdding] = useState(false);
@@ -22,6 +24,7 @@ export default function Schedule() {
   const [extraItems, setExtraItems] = useState<{name: string, price: number}[]>([]);
   const [newItemName, setNewItemName] = useState('');
   const [newItemPrice, setNewItemPrice] = useState('');
+  const [selectedProductId, setSelectedProductId] = useState('');
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,7 +69,13 @@ export default function Schedule() {
   };
 
   const handleAddExtraItem = () => {
-    if (newItemName && newItemPrice) {
+    if (selectedProductId) {
+      const product = products.find(p => p.id === selectedProductId);
+      if (product) {
+        setExtraItems([...extraItems, { name: product.name, price: parseFloat(product.price) || 0 }]);
+        setSelectedProductId('');
+      }
+    } else if (newItemName && newItemPrice) {
       const price = parseFloat(newItemPrice.replace(',', '.'));
       if (!isNaN(price)) {
         setExtraItems([...extraItems, { name: newItemName, price }]);
@@ -223,7 +232,7 @@ export default function Schedule() {
 
       {/* Checkout Modal */}
       {checkoutApp && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-6">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-6">
           <div className="bg-white w-full max-w-md rounded-[2.5rem] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300 flex flex-col max-h-[90vh]">
             <div className="p-6 border-b border-gray-100 flex justify-between items-center sticky top-0 bg-white z-10">
               <h3 className="font-display text-xl font-medium text-gray-900 tracking-tight">Finalizar <span className="text-primary italic">Atendimento</span></h3>
@@ -248,27 +257,56 @@ export default function Schedule() {
                   <ShoppingBag size={16} className="text-primary" /> Adicionar Produtos/Extras
                 </h4>
                 
-                <div className="flex gap-2 mb-4">
-                  <input 
-                    type="text" 
-                    placeholder="Ex: Perfume, Botox..." 
-                    value={newItemName}
-                    onChange={e => setNewItemName(e.target.value)}
-                    className="flex-1 px-4 py-3 rounded-[1rem] border border-gray-200 text-sm focus:border-primary outline-none bg-gray-50/50 focus:bg-white transition-all"
-                  />
-                  <input 
-                    type="number" 
-                    placeholder="R$ 0,00" 
-                    value={newItemPrice}
-                    onChange={e => setNewItemPrice(e.target.value)}
-                    className="w-24 px-4 py-3 rounded-[1rem] border border-gray-200 text-sm focus:border-primary outline-none bg-gray-50/50 focus:bg-white transition-all"
-                  />
-                  <button 
-                    onClick={handleAddExtraItem}
-                    className="bg-primary text-white w-12 h-12 flex items-center justify-center rounded-[1rem] hover:bg-primary-dark transition-colors shadow-sm shadow-primary/20"
-                  >
-                    <Plus size={20} />
-                  </button>
+                <div className="flex flex-col gap-2 mb-4">
+                  <div className="flex gap-2">
+                    <select 
+                      value={selectedProductId}
+                      onChange={e => setSelectedProductId(e.target.value)}
+                      className="flex-1 px-4 py-3 rounded-[1rem] border border-gray-200 text-sm focus:border-primary outline-none bg-gray-50/50 focus:bg-white transition-all"
+                    >
+                      <option value="">Selecione um produto cadastrado...</option>
+                      {products.map(p => (
+                        <option key={p.id} value={p.id}>{p.name} - R$ {parseFloat(p.price).toFixed(2)}</option>
+                      ))}
+                    </select>
+                    <button 
+                      onClick={handleAddExtraItem}
+                      disabled={!selectedProductId}
+                      className="bg-primary text-white w-12 h-12 flex items-center justify-center rounded-[1rem] hover:bg-primary-dark transition-colors shadow-sm shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Plus size={20} />
+                    </button>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 my-2">
+                    <div className="h-px bg-gray-200 flex-1"></div>
+                    <span className="text-xs text-gray-400 font-medium uppercase tracking-wider">ou item avulso</span>
+                    <div className="h-px bg-gray-200 flex-1"></div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <input 
+                      type="text" 
+                      placeholder="Ex: Taxa extra..." 
+                      value={newItemName}
+                      onChange={e => setNewItemName(e.target.value)}
+                      className="flex-1 px-4 py-3 rounded-[1rem] border border-gray-200 text-sm focus:border-primary outline-none bg-gray-50/50 focus:bg-white transition-all"
+                    />
+                    <input 
+                      type="number" 
+                      placeholder="R$ 0,00" 
+                      value={newItemPrice}
+                      onChange={e => setNewItemPrice(e.target.value)}
+                      className="w-24 px-4 py-3 rounded-[1rem] border border-gray-200 text-sm focus:border-primary outline-none bg-gray-50/50 focus:bg-white transition-all"
+                    />
+                    <button 
+                      onClick={handleAddExtraItem}
+                      disabled={!newItemName || !newItemPrice}
+                      className="bg-primary text-white w-12 h-12 flex items-center justify-center rounded-[1rem] hover:bg-primary-dark transition-colors shadow-sm shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Plus size={20} />
+                    </button>
+                  </div>
                 </div>
 
                 {extraItems.length > 0 && (
@@ -324,7 +362,7 @@ export default function Schedule() {
 
       {/* Add Appointment Modal */}
       {isAdding && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-6">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-6">
           <div className="bg-white w-full max-w-md rounded-[2.5rem] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300">
             <div className="p-6 border-b border-gray-100 flex justify-between items-center">
               <h3 className="font-display text-xl font-medium text-gray-900 tracking-tight">Novo <span className="text-primary italic">Agendamento</span></h3>

@@ -238,7 +238,7 @@ export default function PublicPage() {
 
       {/* Scheduling Modal */}
       {selectedService && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 backdrop-blur-sm sm:items-center">
+        <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/50 backdrop-blur-sm sm:items-center">
           <div className="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh] animate-in slide-in-from-bottom-full sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-300">
             {/* Header */}
             <div className="flex justify-between items-center p-4 border-b border-gray-100 sticky top-0 bg-white z-10">
@@ -404,7 +404,7 @@ export default function PublicPage() {
       )}
       {/* Manage Appointments Modal */}
       {isManageModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 backdrop-blur-sm sm:items-center">
+        <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/50 backdrop-blur-sm sm:items-center">
           <div className="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh] animate-in slide-in-from-bottom-full sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-300">
             <div className="flex justify-between items-center p-4 border-b border-gray-100 sticky top-0 bg-white z-10">
               <h3 className="font-display font-bold text-lg text-gray-900">Gerenciar Agendamento</h3>
