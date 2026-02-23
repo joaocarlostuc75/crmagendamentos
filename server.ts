@@ -88,7 +88,7 @@ async function startServer() {
 
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`
-🛡️  Studio VIP Gold - Secure Server Running
+🛡️  Beauty Agenda - Secure Server Running
 🚀  URL: http://0.0.0.0:${PORT}
 🔒  Security Headers: Enabled (Helmet)
 🔑  CORS: Configured

@@ -12,20 +12,22 @@ import Services from './pages/Services';
 import Financial from './pages/Financial';
 import Settings from './pages/Settings';
 import Products from './pages/Products';
+import SuperAdmin from './pages/SuperAdmin';
+import Collaborators from './pages/Collaborators';
 import PublicPage from './pages/PublicPage';
+import LandingPage from './pages/LandingPage';
+
 import Login from './pages/Login';
 import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
 import ProtectedRoute from './components/ProtectedRoute';
-
-import LandingPage from './pages/LandingPage';
 
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<LandingPage />} />
-        <Route path="/public" element={<PublicPage />} />
+        <Route path="/p/:slug" element={<PublicPage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -38,6 +40,8 @@ export default function App() {
             <Route path="products" element={<Products />} />
             <Route path="financial" element={<Financial />} />
             <Route path="settings" element={<Settings />} />
+            <Route path="admin" element={<SuperAdmin />} />
+            <Route path="collaborators" element={<Collaborators />} />
           </Route>
         </Route>
       </Routes>

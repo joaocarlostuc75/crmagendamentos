@@ -1,61 +1,45 @@
-import React from 'react';
-import { Outlet, NavLink } from 'react-router-dom';
-import { Home, Users, CalendarHeart, Sparkles, LineChart, Settings, ShoppingBag } from 'lucide-react';
-import clsx from 'clsx';
+import { Outlet, Link, useLocation } from 'react-router-dom';
+import { Home, Calendar, Users, ShoppingBag, DollarSign, Settings, Shield, Users as CollaboratorsIcon } from 'lucide-react';
+
+const navItems = [
+  { href: '/app', icon: Home, label: 'Dashboard' },
+  { href: '/app/schedule', icon: Calendar, label: 'Agenda' },
+  { href: '/app/clients', icon: Users, label: 'Clientes' },
+  { href: '/app/services', icon: ShoppingBag, label: 'Serviços' },
+  { href: '/app/products', icon: ShoppingBag, label: 'Produtos' },
+  { href: '/app/financial', icon: DollarSign, label: 'Financeiro' },
+  { href: '/app/collaborators', icon: CollaboratorsIcon, label: 'Colaboradores' },
+  { href: '/app/settings', icon: Settings, label: 'Ajustes' },
+  { href: '/app/admin', icon: Shield, label: 'Admin' },
+];
 
 export default function Layout() {
+  const location = useLocation();
+
   return (
-    <div className="min-h-screen pb-24 flex flex-col bg-[#f5f2ed]">
+    <div className="flex h-screen bg-gray-100">
+      <aside className="w-64 bg-white shadow-md flex flex-col">
+        <div className="p-6">
+          <h1 className="text-2xl font-bold text-primary">BeautyAgenda</h1>
+        </div>
+        <nav className="flex-1 px-4">
+          <ul>
+            {navItems.map(item => (
+              <li key={item.href}>
+                <Link 
+                  to={item.href} 
+                  className={`flex items-center p-3 my-1 rounded-lg transition-colors ${location.pathname === item.href ? 'bg-primary/10 text-primary' : 'text-gray-600 hover:bg-gray-100'}`}>
+                  <item.icon className="w-5 h-5 mr-3" />
+                  {item.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      </aside>
       <main className="flex-1 overflow-y-auto">
         <Outlet />
       </main>
-      
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[95%] max-w-md">
-        <nav className="bg-white/80 backdrop-blur-2xl border border-white/40 px-2 py-3 flex justify-between items-center rounded-[2rem] shadow-[0_8px_32px_-8px_rgba(0,0,0,0.15)]">
-          <div className="flex justify-between items-center w-full px-1 sm:px-2 gap-1">
-            <NavItem to="/app" icon={<Home size={20} />} label="Início" />
-            <NavItem to="/app/schedule" icon={<CalendarHeart size={20} />} label="Agenda" />
-            <NavItem to="/app/clients" icon={<Users size={20} />} label="Clientes" />
-            <NavItem to="/app/services" icon={<Sparkles size={20} />} label="Serviços" />
-            <NavItem to="/app/products" icon={<ShoppingBag size={20} />} label="Loja" />
-            <NavItem to="/app/financial" icon={<LineChart size={20} />} label="Relatos" />
-            <NavItem to="/app/settings" icon={<Settings size={20} />} label="Ajustes" />
-          </div>
-        </nav>
-      </div>
     </div>
-  );
-}
-
-function NavItem({ to, icon, label }: { to: string; icon: React.ReactNode; label: string }) {
-  return (
-    <NavLink 
-      to={to} 
-      className={({ isActive }) => clsx(
-        "flex flex-col items-center justify-center w-12 h-12 rounded-2xl transition-all relative group",
-        isActive ? "bg-primary text-white shadow-lg shadow-primary/30" : "text-gray-400 hover:text-primary hover:bg-primary/5"
-      )}
-    >
-      {({ isActive }) => (
-        <>
-          <div className={clsx(
-            "transition-transform duration-300", 
-            isActive ? "scale-110" : "group-hover:scale-110"
-          )}>
-            {icon}
-          </div>
-          
-          {/* Tooltip for non-active state on hover (desktop) or active state (mobile) */}
-          <span className={clsx(
-            "absolute -top-10 bg-gray-900 text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-xl transition-all duration-300 pointer-events-none whitespace-nowrap",
-            "opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0",
-            isActive ? "hidden" : "block"
-          )}>
-            {label}
-            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-gray-900 rotate-45"></div>
-          </span>
-        </>
-      )}
-    </NavLink>
   );
 }

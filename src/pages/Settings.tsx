@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { User, Mail, Phone, MapPin, Instagram, Clock, Camera, Save, LogOut, ExternalLink, Shield, AlignLeft, CalendarOff, Plus, Trash2, Truck, Copy } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Instagram, Clock, Camera, Save, LogOut, ExternalLink, Shield, AlignLeft, CalendarOff, Plus, Trash2, Truck, Copy, UserPlus, Link as LinkIcon } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 
 export default function Settings() {
@@ -13,7 +13,8 @@ export default function Settings() {
     address: "",
     instagram: "",
     opening_hours: "",
-    logo_url: ""
+    logo_url: "",
+    slug: ""
   });
   
   const [extraSettings, setExtraSettings] = useLocalStorage('beauty_agenda_extra_settings', { 
@@ -100,9 +101,9 @@ export default function Settings() {
   };
 
   const copyPublicLink = () => {
-    const link = `${window.location.origin}/public`;
+    const link = `${window.location.origin}/p/${profile.slug}`;
     navigator.clipboard.writeText(link);
-    alert('Link da loja copiado! Agora você pode colar na sua bio do Instagram.');
+    alert('Link da página pública copiado!');
   };
 
   if (loading) {
@@ -133,7 +134,6 @@ export default function Settings() {
 
       <main className="flex-1 p-6 space-y-8 pb-32 overflow-y-auto">
         <form onSubmit={handleSave} className="space-y-8 max-w-3xl mx-auto">
-          {/* Logo Upload */}
           <div className="flex flex-col items-center">
             <div className="relative group">
               <div className="w-32 h-32 rounded-full overflow-hidden border border-primary/20 shadow-md bg-white">
@@ -169,7 +169,7 @@ export default function Settings() {
                     value={profile.name || ''}
                     onChange={e => setProfile({...profile, name: e.target.value})}
                     className="w-full pl-12 pr-4 py-3.5 rounded-[1.5rem] border border-gray-100 bg-[#f5f2ed]/50 focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all text-sm text-gray-700"
-                    placeholder="Ex: Studio VIP Gold"
+                    placeholder="Ex: Beauty Agenda"
                   />
                 </div>
               </div>
@@ -194,6 +194,19 @@ export default function Settings() {
                     type="text" 
                     value={profile.phone || ''}
                     onChange={e => setProfile({...profile, phone: e.target.value})}
+                    className="w-full pl-12 pr-4 py-3.5 rounded-[1.5rem] border border-gray-100 bg-[#f5f2ed]/50 focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all text-sm text-gray-700"
+                    placeholder="(11) 99999-9999"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-[0.15em] mb-2 ml-1">WhatsApp para Notificações</label>
+                <div className="relative">
+                  <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                  <input 
+                    type="text" 
+                    value={profile.whatsapp_number || ''}
+                    onChange={e => setProfile({...profile, whatsapp_number: e.target.value})}
                     className="w-full pl-12 pr-4 py-3.5 rounded-[1.5rem] border border-gray-100 bg-[#f5f2ed]/50 focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all text-sm text-gray-700"
                     placeholder="(11) 99999-9999"
                   />
@@ -256,115 +269,37 @@ export default function Settings() {
             </div>
           </div>
 
-          {/* Bloqueio de Agenda */}
           <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-gray-100/50 space-y-6">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                <CalendarOff size={20} />
+                <UserPlus size={20} />
               </div>
-              <h3 className="font-display font-medium text-lg text-gray-900">Bloqueios de Agenda</h3>
+              <h3 className="font-display font-medium text-lg text-gray-900">Gestão de Equipe</h3>
             </div>
-            <p className="text-sm text-gray-500 mb-4">Adicione períodos em que você não estará disponível (férias, viagens, etc).</p>
-
-            <div className="flex flex-col md:flex-row gap-4 items-end">
-              <div className="flex-1 w-full">
-                <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-[0.15em] mb-2 ml-1">Data Inicial</label>
-                <input 
-                  type="date" 
-                  value={newBlockStart}
-                  onChange={e => setNewBlockStart(e.target.value)}
-                  className="w-full px-4 py-3.5 rounded-[1.5rem] border border-gray-100 bg-[#f5f2ed]/50 focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all text-sm text-gray-700"
-                />
-              </div>
-              <div className="flex-1 w-full">
-                <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-[0.15em] mb-2 ml-1">Data Final</label>
-                <input 
-                  type="date" 
-                  value={newBlockEnd}
-                  onChange={e => setNewBlockEnd(e.target.value)}
-                  className="w-full px-4 py-3.5 rounded-[1.5rem] border border-gray-100 bg-[#f5f2ed]/50 focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all text-sm text-gray-700"
-                />
-              </div>
-              <button 
-                type="button"
-                onClick={handleAddBlock}
-                disabled={!newBlockStart || !newBlockEnd}
-                className="bg-primary text-white p-3.5 rounded-[1.5rem] shadow-lg shadow-primary/20 hover:bg-primary-dark transition-all disabled:opacity-50 w-full md:w-auto flex items-center justify-center"
-              >
-                <Plus size={20} />
-              </button>
-            </div>
-
-            {extraSettings.blockedPeriods.length > 0 && (
-              <div className="mt-6 space-y-3">
-                <h4 className="text-[10px] font-semibold text-gray-500 uppercase tracking-[0.15em] ml-1">Períodos Bloqueados</h4>
-                {extraSettings.blockedPeriods.map((period, index) => (
-                  <div key={index} className="flex items-center justify-between p-4 rounded-[1.5rem] border border-gray-100 bg-[#f5f2ed]/30">
-                    <div className="flex items-center gap-3">
-                      <CalendarOff size={16} className="text-gray-400" />
-                      <span className="text-sm font-medium text-gray-700">
-                        {new Date(period.start + 'T00:00:00').toLocaleDateString('pt-BR')} até {new Date(period.end + 'T00:00:00').toLocaleDateString('pt-BR')}
-                      </span>
-                    </div>
-                    <button 
-                      type="button"
-                      onClick={() => handleRemoveBlock(index)}
-                      className="w-8 h-8 flex items-center justify-center text-red-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
+            <Link to="/app/collaborators" className="flex items-center justify-between p-4 rounded-xl bg-primary/5 hover:bg-primary/10 text-primary-dark transition-colors">
+              <span className="font-medium text-sm">Gerenciar Colaboradores</span>
+              <ExternalLink size={16} />
+            </Link>
           </div>
 
-          {/* Configurações de Loja */}
           <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-gray-100/50 space-y-6">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                <Truck size={20} />
+                <LinkIcon size={20} />
               </div>
-              <h3 className="font-display font-medium text-lg text-gray-900">Configurações de Loja</h3>
+              <h3 className="font-display font-medium text-lg text-gray-900">URL Pública</h3>
             </div>
-            
-            <div className="space-y-6">
-              <div>
-                <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-[0.15em] mb-2 ml-1">Link Público da Loja (Bio do Instagram)</label>
-                <div className="flex gap-2">
-                  <div className="flex-1 relative">
-                    <ExternalLink className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                    <input 
-                      type="text" 
-                      readOnly
-                      value={`${window.location.origin}/public`}
-                      className="w-full pl-12 pr-4 py-3.5 rounded-[1.5rem] border border-gray-100 bg-gray-50 text-xs text-gray-500 outline-none"
-                    />
-                  </div>
-                  <button 
-                    type="button"
-                    onClick={copyPublicLink}
-                    className="bg-white border border-primary/20 text-primary px-6 rounded-[1.5rem] font-bold text-xs hover:bg-primary/5 transition-all flex items-center gap-2"
-                  >
-                    <Copy size={16} /> Copiar
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-[0.15em] mb-2 ml-1">Taxa de Entrega Padrão (R$)</label>
-                <div className="relative">
-                  <Truck className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                  <input 
-                    type="number" 
-                    step="0.01"
-                    value={deliveryFee}
-                    onChange={e => setDeliveryFee(parseFloat(e.target.value) || 0)}
-                    className="w-full pl-12 pr-4 py-3.5 rounded-[1.5rem] border border-gray-100 bg-[#f5f2ed]/50 focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all text-sm text-gray-700"
-                    placeholder="0.00"
-                  />
-                </div>
-                <p className="text-[10px] text-gray-400 mt-2 ml-1 italic">* Este valor será aplicado automaticamente aos pedidos com entrega.</p>
+            <div>
+              <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-[0.15em] mb-2 ml-1">Seu Link Personalizado</label>
+              <div className="flex items-center">
+                <span className="text-sm text-gray-400 bg-gray-100 px-4 py-3.5 rounded-l-[1.5rem] border-y border-l border-gray-200">beautyagenda.com/p/</span>
+                <input 
+                  type="text" 
+                  value={profile.slug || ''}
+                  onChange={e => setProfile({...profile, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '')})}
+                  className="w-full pl-4 pr-4 py-3.5 rounded-r-[1.5rem] border border-gray-200 bg-white focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all text-sm text-gray-700"
+                  placeholder="seu-studio"
+                />
               </div>
             </div>
           </div>
@@ -377,12 +312,12 @@ export default function Settings() {
             >
               <Save size={18} /> {saving ? 'Salvando...' : 'Salvar Alterações'}
             </button>
-            <a 
-              href="/public" 
-              target="_blank"
-              className="w-[56px] h-[56px] bg-white rounded-[1.5rem] flex items-center justify-center text-primary shadow-sm border border-gray-100 hover:border-primary/30 transition-all active:scale-[0.98]"
-              title="Ver Página Pública"
-            >
+              <a 
+                href={profile.slug ? `/p/${profile.slug}` : '#'}
+                target="_blank"
+                className={`w-[56px] h-[56px] bg-white rounded-[1.5rem] flex items-center justify-center text-primary shadow-sm border border-gray-100 hover:border-primary/30 transition-all active:scale-[0.98] ${!profile.slug && 'opacity-50 cursor-not-allowed'}`}
+                title="Ver Página Pública"
+              >
               <ExternalLink size={20} />
             </a>
           </div>
