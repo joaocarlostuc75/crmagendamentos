@@ -22,11 +22,18 @@ import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
 import ProtectedRoute from './components/ProtectedRoute';
 
+import TermsOfUse from './pages/TermsOfUse';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import LGPD from './pages/LGPD';
+
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<LandingPage />} />
+        <Route path="/terms" element={<TermsOfUse />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/lgpd" element={<LGPD />} />
         <Route path="/p/:slug" element={<PublicPage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />

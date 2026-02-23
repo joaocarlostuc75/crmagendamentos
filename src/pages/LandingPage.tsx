@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Check, Star, Calendar, ShoppingBag, BarChart3, Users, MessageCircle, Smartphone, Globe, ShieldCheck, ArrowRight } from 'lucide-react';
+import { useSupabaseData } from '../hooks/useSupabase';
 
 const plans = [
   {
@@ -95,6 +96,25 @@ const features = [
 ];
 
 export default function LandingPage() {
+  const { data: features } = useSupabaseData<any>('system_features');
+  const [contactInfo, setContactInfo] = useState({
+    phone: '(11) 99999-9999',
+    instagram: '@beautyagenda',
+    website: 'beautyagenda.com'
+  });
+
+  useEffect(() => {
+    if (features) {
+      const newInfo = { ...contactInfo };
+      features.forEach(f => {
+        if (f.name === 'setting_phone') newInfo.phone = f.description;
+        if (f.name === 'setting_instagram') newInfo.instagram = f.description;
+        if (f.name === 'setting_website') newInfo.website = f.description;
+      });
+      setContactInfo(newInfo);
+    }
+  }, [features]);
+
   return (
     <div className="bg-[#FDFBF7] min-h-screen font-body text-[#1A1A1A]">
       {/* Header */}
@@ -374,9 +394,9 @@ export default function LandingPage() {
           <div>
             <h4 className="font-bold text-[#1A1A1A] mb-6">Legal</h4>
             <ul className="space-y-4 text-sm text-gray-500">
-              <li><a href="#" className="hover:text-[#C6A84B] transition-colors">Termos de Uso</a></li>
-              <li><a href="#" className="hover:text-[#C6A84B] transition-colors">Política de Privacidade</a></li>
-              <li><a href="#" className="hover:text-[#C6A84B] transition-colors">LGPD</a></li>
+              <li><Link to="/terms" className="hover:text-[#C6A84B] transition-colors">Termos de Uso</Link></li>
+              <li><Link to="/privacy" className="hover:text-[#C6A84B] transition-colors">Política de Privacidade</Link></li>
+              <li><Link to="/lgpd" className="hover:text-[#C6A84B] transition-colors">LGPD</Link></li>
             </ul>
           </div>
 
@@ -385,15 +405,15 @@ export default function LandingPage() {
             <ul className="space-y-4 text-sm text-gray-500">
               <li className="flex items-center gap-2">
                 <MessageCircle size={16} className="text-[#C6A84B]" />
-                (11) 99999-9999
+                {contactInfo.phone}
               </li>
               <li className="flex items-center gap-2">
                 <Users size={16} className="text-[#C6A84B]" />
-                @beautyagenda
+                {contactInfo.instagram}
               </li>
               <li className="flex items-center gap-2">
                 <Globe size={16} className="text-[#C6A84B]" />
-                beautyagenda.com
+                {contactInfo.website}
               </li>
             </ul>
           </div>
@@ -401,8 +421,8 @@ export default function LandingPage() {
         <div className="container mx-auto px-6 mt-16 pt-8 border-t border-gray-100 flex flex-col md:flex-row justify-between items-center text-xs text-gray-400 uppercase tracking-wider">
           <p>&copy; {new Date().getFullYear()} Beauty Agenda. Todos os direitos reservados.</p>
           <div className="flex gap-6 mt-4 md:mt-0">
-            <a href="#">Termos de Uso</a>
-            <a href="#">Privacidade</a>
+            <Link to="/terms">Termos de Uso</Link>
+            <Link to="/privacy">Privacidade</Link>
           </div>
         </div>
       </footer>

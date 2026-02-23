@@ -174,6 +174,101 @@ const PlansPanel = () => {
   );
 }
 
+const SettingsPanel = () => {
+  const { data: features, loading, error, update, insert } = useSupabaseData<any>('system_features');
+  const [settings, setSettings] = useState<{ [key: string]: string }>({});
+
+  useEffect(() => {
+    if (features) {
+      const newSettings: { [key: string]: string } = {};
+      features.forEach(f => {
+        if (f.name.startsWith('setting_')) {
+          newSettings[f.name] = f.description || '';
+        }
+      });
+      setSettings(newSettings);
+    }
+  }, [features]);
+
+  if (loading) return <div className="text-center p-4">Carregando configurações...</div>;
+  if (error) return <div className="text-center p-4 text-red-500">Erro ao carregar dados.</div>;
+
+  const handleSave = async (key: string, value: string) => {
+    const feature = features.find(f => f.name === key);
+    if (feature) {
+      await update(feature.id, { description: value });
+    } else {
+      await insert({ name: key, description: value, is_enabled: true });
+    }
+    setSettings(prev => ({ ...prev, [key]: value }));
+  };
+
+  return (
+    <div className="bg-white rounded-lg shadow-sm p-6 space-y-6">
+      <h3 className="text-lg font-semibold text-gray-800 mb-4">Informações de Contato (Landing Page)</h3>
+      
+      <div className="grid gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Telefone / WhatsApp</label>
+          <div className="flex gap-2">
+            <input 
+              type="text" 
+              value={settings['setting_phone'] || ''} 
+              onChange={(e) => setSettings(prev => ({ ...prev, 'setting_phone': e.target.value }))}
+              placeholder="(11) 99999-9999"
+              className="flex-1 p-2 border rounded-md"
+            />
+            <button 
+              onClick={() => handleSave('setting_phone', settings['setting_phone'])}
+              className="bg-primary text-white px-4 py-2 rounded-md text-sm hover:bg-primary-dark"
+            >
+              Salvar
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Instagram</label>
+          <div className="flex gap-2">
+            <input 
+              type="text" 
+              value={settings['setting_instagram'] || ''} 
+              onChange={(e) => setSettings(prev => ({ ...prev, 'setting_instagram': e.target.value }))}
+              placeholder="@seuinstagram"
+              className="flex-1 p-2 border rounded-md"
+            />
+            <button 
+              onClick={() => handleSave('setting_instagram', settings['setting_instagram'])}
+              className="bg-primary text-white px-4 py-2 rounded-md text-sm hover:bg-primary-dark"
+            >
+              Salvar
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Website</label>
+          <div className="flex gap-2">
+            <input 
+              type="text" 
+              value={settings['setting_website'] || ''} 
+              onChange={(e) => setSettings(prev => ({ ...prev, 'setting_website': e.target.value }))}
+              placeholder="seuwebsite.com"
+              className="flex-1 p-2 border rounded-md"
+            />
+            <button 
+              onClick={() => handleSave('setting_website', settings['setting_website'])}
+              className="bg-primary text-white px-4 py-2 rounded-md text-sm hover:bg-primary-dark"
+            >
+              Salvar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const SystemFeaturesPanel = () => {
   const { data: features, loading, error, update } = useSupabaseData<any>('system_features');
 
@@ -184,9 +279,12 @@ const SystemFeaturesPanel = () => {
     update(feature.id, { is_enabled: !feature.is_enabled });
   };
 
+  // Filter out settings from this view
+  const displayFeatures = features.filter(f => !f.name.startsWith('setting_'));
+
   return (
     <div className="bg-white rounded-lg shadow-sm divide-y divide-gray-200/80">
-      {features.map(feature => (
+      {displayFeatures.map(feature => (
         <div key={feature.id} className="p-4 flex justify-between items-center">
           <div>
             <h4 className="font-medium text-gray-800">{feature.name}</h4>
@@ -224,6 +322,7 @@ export default function SuperAdmin() {
             <TabButton active={activeTab === 'establishments'} onClick={() => setActiveTab('establishments')}>Estabelecimentos</TabButton>
             <TabButton active={activeTab === 'plans'} onClick={() => setActiveTab('plans')}>Planos</TabButton>
             <TabButton active={activeTab === 'features'} onClick={() => setActiveTab('features')}>System Features</TabButton>
+            <TabButton active={activeTab === 'settings'} onClick={() => setActiveTab('settings')}>Configurações</TabButton>
           </div>
         </div>
 
@@ -231,6 +330,7 @@ export default function SuperAdmin() {
           {activeTab === 'establishments' && <EstablishmentsPanel />}
           {activeTab === 'plans' && <PlansPanel />}
           {activeTab === 'features' && <SystemFeaturesPanel />}
+          {activeTab === 'settings' && <SettingsPanel />}
         </div>
       </main>
     </div>
