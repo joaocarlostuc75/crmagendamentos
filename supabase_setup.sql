@@ -1,10 +1,11 @@
 -- Multi-tenant Setup for Beauty Agenda Studio
 -- Execute this in your Supabase SQL Editor
+-- This script is idempotent and can be run multiple times.
 
--- 1. Create Tables
+-- 1. Create Tables IF THEY DO NOT EXIST
 
 -- Profiles (Establishment details)
-CREATE TABLE profiles (
+CREATE TABLE IF NOT EXISTS profiles (
   id UUID REFERENCES auth.users ON DELETE CASCADE PRIMARY KEY,
   name TEXT NOT NULL,
   owner TEXT,
@@ -18,7 +19,7 @@ CREATE TABLE profiles (
 );
 
 -- Clients
-CREATE TABLE clients (
+CREATE TABLE IF NOT EXISTS clients (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL,
   name TEXT NOT NULL,
@@ -32,7 +33,7 @@ CREATE TABLE clients (
 );
 
 -- Services
-CREATE TABLE services (
+CREATE TABLE IF NOT EXISTS services (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL,
   name TEXT NOT NULL,
@@ -44,7 +45,7 @@ CREATE TABLE services (
 );
 
 -- Appointments
-CREATE TABLE appointments (
+CREATE TABLE IF NOT EXISTS appointments (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL,
   client_id UUID REFERENCES clients ON DELETE SET NULL,
@@ -63,29 +64,55 @@ ALTER TABLE clients ENABLE ROW LEVEL SECURITY;
 ALTER TABLE services ENABLE ROW LEVEL SECURITY;
 ALTER TABLE appointments ENABLE ROW LEVEL SECURITY;
 
--- 3. Create RLS Policies
+-- 3. Create RLS Policies (Drop if exists to ensure they are up-to-date)
 
 -- Profiles: Users can only see and edit their own profile
+DROP POLICY IF EXISTS "Users can view own profile" ON profiles;
 CREATE POLICY "Users can view own profile" ON profiles FOR SELECT USING (auth.uid() = id);
+
+DROP POLICY IF EXISTS "Users can update own profile" ON profiles;
 CREATE POLICY "Users can update own profile" ON profiles FOR UPDATE USING (auth.uid() = id);
+
+DROP POLICY IF EXISTS "Users can insert own profile" ON profiles;
 CREATE POLICY "Users can insert own profile" ON profiles FOR INSERT WITH CHECK (auth.uid() = id);
 
 -- Clients: Users can only see and edit their own clients
+DROP POLICY IF EXISTS "Users can view own clients" ON clients;
 CREATE POLICY "Users can view own clients" ON clients FOR SELECT USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can insert own clients" ON clients;
 CREATE POLICY "Users can insert own clients" ON clients FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can update own clients" ON clients;
 CREATE POLICY "Users can update own clients" ON clients FOR UPDATE USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can delete own clients" ON clients;
 CREATE POLICY "Users can delete own clients" ON clients FOR DELETE USING (auth.uid() = user_id);
 
 -- Services: Users can only see and edit their own services
+DROP POLICY IF EXISTS "Users can view own services" ON services;
 CREATE POLICY "Users can view own services" ON services FOR SELECT USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can insert own services" ON services;
 CREATE POLICY "Users can insert own services" ON services FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can update own services" ON services;
 CREATE POLICY "Users can update own services" ON services FOR UPDATE USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can delete own services" ON services;
 CREATE POLICY "Users can delete own services" ON services FOR DELETE USING (auth.uid() = user_id);
 
 -- Appointments: Users can only see and edit their own appointments
+DROP POLICY IF EXISTS "Users can view own appointments" ON appointments;
 CREATE POLICY "Users can view own appointments" ON appointments FOR SELECT USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can insert own appointments" ON appointments;
 CREATE POLICY "Users can insert own appointments" ON appointments FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can update own appointments" ON appointments;
 CREATE POLICY "Users can update own appointments" ON appointments FOR UPDATE USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can delete own appointments" ON appointments;
 CREATE POLICY "Users can delete own appointments" ON appointments FOR DELETE USING (auth.uid() = user_id);
 
 -- 4. Public Access (Optional: if you want the public page to show data)

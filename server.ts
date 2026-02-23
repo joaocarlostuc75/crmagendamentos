@@ -5,14 +5,6 @@ import helmet from 'helmet';
 import cors from 'cors';
 import { createServer as createViteServer } from 'vite';
 
-process.on('uncaughtException', (err) => {
-  console.error('Uncaught Exception:', err);
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-});
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -22,18 +14,52 @@ async function startServer() {
 
   // 1. Security Headers (Helmet)
   app.use(helmet({
-    contentSecurityPolicy: false,
-    frameguard: false,
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://apis.google.com", "https://*.supabase.co"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+        imgSrc: ["'self'", "data:", "blob:", "https://images.unsplash.com", "https://picsum.photos", "https://*.supabase.co"],
+        connectSrc: ["'self'", "https://*.supabase.co", "https://*.google.com", "wss://*.supabase.co", "ws://localhost:*", "ws://0.0.0.0:*"],
+        fontSrc: ["'self'", "https://fonts.gstatic.com"],
+        objectSrc: ["'none'"],
+        mediaSrc: ["'self'"],
+        frameSrc: ["'self'", "https://*.supabase.co"],
+        frameAncestors: ["*"], // Allow being embedded in any iframe (required for AI Studio)
+        upgradeInsecureRequests: [],
+      },
+    },
+    frameguard: false, // Disable X-Frame-Options to allow iframe embedding
     crossOriginEmbedderPolicy: false,
     crossOriginResourcePolicy: { policy: "cross-origin" },
     referrerPolicy: { policy: "strict-origin-when-cross-origin" },
   }));
 
   // 2. CORS Configuration
+  const allowedOrigins = [
+    process.env.APP_URL,
+    'http://localhost:3000',
+  ].filter(Boolean) as string[];
+
   app.use(cors({
-    origin: process.env.APP_URL || '*',
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) return callback(null, true);
+      
+      // Allow from whitelisted origins
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      // Allow from AI Studio preview URLs
+      if (origin.includes('.run.app')) {
+        return callback(null, true);
+      }
+      
+      return callback(new Error('Not allowed by CORS'));
+    },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'x-client-info'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-client-info', 'apikey'],
     credentials: true,
   }));
 
@@ -48,15 +74,11 @@ async function startServer() {
 
   // 5. Vite Integration or Static Files
   if (process.env.NODE_ENV !== 'production') {
-    try {
-      const vite = await createViteServer({
-        server: { middlewareMode: true },
-        appType: 'spa',
-      });
-      app.use(vite.middlewares);
-    } catch (e) {
-      console.error('Failed to create Vite server:', e);
-    }
+    const vite = await createViteServer({
+      server: { middlewareMode: true },
+      appType: 'spa',
+    });
+    app.use(vite.middlewares);
   } else {
     app.use(express.static(path.join(__dirname, 'dist')));
     app.get('*', (req, res) => {
