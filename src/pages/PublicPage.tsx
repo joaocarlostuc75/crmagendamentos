@@ -1,58 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { MapPin, Phone, Instagram, Clock, Star, ChevronRight, X, Calendar as CalendarIcon, User } from 'lucide-react';
+import { MapPin, Phone, Instagram, Clock, Star, ChevronRight, X, Calendar as CalendarIcon, User, Lock, Info } from 'lucide-react';
 import WatermarkedImage from '../components/WatermarkedImage';
+import { useSupabaseData } from '../hooks/useSupabase';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 
-const initialProfile = {
-  name: "Beauty Agenda Studio",
-  owner: "Ana Silva",
-  email: "contato@beautyagenda.com",
-  phone: "(11) 99999-9999",
-  address: "Av. Paulista, 1000 - Bela Vista, São Paulo",
-  instagram: "@beautyagenda",
-  openingHours: "Seg-Sáb: 09:00 - 19:00",
-  logo: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=150&h=150"
-};
-
-const initialServices = [
-  {
-    id: 1,
-    name: "Cílios Fio a Fio",
-    price: "R$ 150,00",
-    duration: "90 min",
-    img: "https://images.unsplash.com/photo-1588513706482-10600a204ca5?auto=format&fit=crop&q=80&w=150&h=150",
-    description: "Técnica clássica que aplica um fio sintético sobre cada fio natural, proporcionando um efeito rímel natural e elegante."
-  },
-  {
-    id: 2,
-    name: "Lash Egípcio",
-    price: "R$ 180,00",
-    duration: "105 min",
-    img: "https://images.unsplash.com/photo-1512496015851-a1c825b27264?auto=format&fit=crop&q=80&w=150&h=150",
-    description: "Técnica inovadora que utiliza fios em formato de Y, oferecendo mais volume que o clássico com a mesma leveza."
-  },
-  {
-    id: 3,
-    name: "Volume Brasileiro",
-    price: "R$ 210,00",
-    duration: "120 min",
-    img: "https://images.unsplash.com/photo-1500336624523-d727130c3328?auto=format&fit=crop&q=80&w=150&h=150",
-    description: "Fios em formato de Y que proporcionam um volume texturizado e marcante, ideal para quem busca destaque."
-  },
-  {
-    id: 4,
-    name: "Volume Russo",
-    price: "R$ 250,00",
-    duration: "150 min",
-    img: "https://images.unsplash.com/photo-1515377905703-c4788e51af15?auto=format&fit=crop&q=80&w=150&h=150",
-    description: "Técnica avançada onde são criados 'fans' (leques) de 3 a 6 fios ultrafinos aplicados em cada fio natural, garantindo volume máximo."
-  }
-];
-
 export default function PublicPage() {
-  const [profile] = useLocalStorage('beauty_agenda_profile', initialProfile);
-  const [services] = useLocalStorage('beauty_agenda_services', initialServices);
+  const { data: profiles, loading: loadingProfile } = useSupabaseData<any>('profiles');
+  const { data: servicesData, loading: loadingServices } = useSupabaseData<any>('services');
+  const { data: appointments } = useSupabaseData<any>('appointments');
+  const [extraSettings] = useLocalStorage('beauty_agenda_extra_settings', { description: '', blockedPeriods: [] as {start: string, end: string}[] });
+  
   const [searchParams] = useSearchParams();
   const referralCode = searchParams.get('ref');
 
@@ -62,6 +20,19 @@ export default function PublicPage() {
   const [selectedTime, setSelectedTime] = useState('');
   const [clientName, setClientName] = useState('');
   const [clientPhone, setClientPhone] = useState('');
+
+  const profile = profiles?.[0] || {
+    name: "Beauty Agenda Studio",
+    owner: "Ana Silva",
+    email: "contato@beautyagenda.com",
+    phone: "(11) 99999-9999",
+    address: "Av. Paulista, 1000 - Bela Vista, São Paulo",
+    instagram: "@beautyagenda",
+    opening_hours: "Seg-Sáb: 09:00 - 19:00",
+    logo_url: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=150&h=150"
+  };
+
+  const services = servicesData?.length > 0 ? servicesData : [];
 
   const openServiceModal = (service: any) => {
     setSelectedService(service);
@@ -85,9 +56,34 @@ export default function PublicPage() {
       message += `%0A%0A*Indicação:* ${referralCode}`;
     }
 
-    window.open(`https://wa.me/${profile.phone.replace(/\D/g, '')}?text=${message}`, '_blank');
+    window.open(`https://wa.me/${(profile.phone || '').replace(/\D/g, '')}?text=${message}`, '_blank');
     closeModal();
   };
+
+  const isDateBlocked = (dateStr: string) => {
+    const date = new Date(dateStr + 'T00:00:00');
+    for (const period of extraSettings.blockedPeriods) {
+      const start = new Date(period.start + 'T00:00:00');
+      const end = new Date(period.end + 'T00:00:00');
+      if (date >= start && date <= end) {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  const isTimeBooked = (dateStr: string, timeStr: string) => {
+    if (!appointments) return false;
+    return appointments.some((app: any) => app.appointment_date === dateStr && app.appointment_time.startsWith(timeStr));
+  };
+
+  if (loadingProfile || loadingServices) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background-light">
+        <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background-light flex flex-col">
@@ -104,7 +100,7 @@ export default function PublicPage() {
           <div className="bg-white/10 backdrop-blur-md p-2 rounded-2xl border border-white/20">
             <div className="w-16 h-16 rounded-xl overflow-hidden bg-white shadow-xl">
               <WatermarkedImage 
-                src={profile.logo} 
+                src={profile.logo_url || "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=150&h=150"} 
                 alt="Logo" 
                 className="w-full h-full object-cover"
               />
@@ -118,10 +114,10 @@ export default function PublicPage() {
         <div className="absolute bottom-12 left-8 right-8">
           <div className="flex items-center gap-2 mb-2">
             <div className="h-[1px] w-8 bg-primary"></div>
-            <span className="text-primary font-bold text-[10px] uppercase tracking-[0.3em]">Studio VIP Gold</span>
+            <span className="text-primary font-bold text-[10px] uppercase tracking-[0.3em]">{profile.name}</span>
           </div>
           <h1 className="font-display text-5xl font-bold text-gray-900 leading-none tracking-tighter">
-            {profile.name.split(' ')[0]} <span className="text-primary italic font-light">{profile.name.split(' ').slice(1).join(' ')}</span>
+            {(profile.name || 'Studio').split(' ')[0]} <span className="text-primary italic font-light">{(profile.name || '').split(' ').slice(1).join(' ')}</span>
           </h1>
         </div>
       </div>
@@ -136,7 +132,7 @@ export default function PublicPage() {
                 <span className="text-[10px] font-bold text-gray-400 ml-2 uppercase tracking-widest">Excelência em cada detalhe</span>
               </div>
               <p className="text-gray-600 leading-relaxed text-sm">
-                Bem-vinda ao seu refúgio de beleza. Especialistas em realçar sua essência através de técnicas exclusivas e atendimento personalizado de alto padrão.
+                {extraSettings.description || 'Bem-vinda ao seu refúgio de beleza. Especialistas em realçar sua essência através de técnicas exclusivas e atendimento personalizado de alto padrão.'}
               </p>
             </div>
             
@@ -147,13 +143,13 @@ export default function PublicPage() {
               </div>
               <div className="flex items-center gap-3 text-gray-600">
                 <Clock size={18} className="text-primary flex-shrink-0" />
-                <span className="text-xs font-medium">{profile.openingHours}</span>
+                <span className="text-xs font-medium">{profile.opening_hours}</span>
               </div>
               <div className="flex gap-3 pt-2">
-                <a href={`https://wa.me/${profile.phone.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="flex-1 bg-primary text-white py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-primary/20 hover:bg-primary-dark transition-all">
+                <a href={`https://wa.me/${(profile.phone || '').replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="flex-1 bg-primary text-white py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-primary/20 hover:bg-primary-dark transition-all">
                   <Phone size={14} /> Contato
                 </a>
-                <a href={`https://instagram.com/${profile.instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="w-11 h-11 bg-gray-50 text-gray-400 rounded-xl flex items-center justify-center hover:bg-primary/10 hover:text-primary transition-all border border-gray-100">
+                <a href={`https://instagram.com/${(profile.instagram || '').replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="w-11 h-11 bg-gray-50 text-gray-400 rounded-xl flex items-center justify-center hover:bg-primary/10 hover:text-primary transition-all border border-gray-100">
                   <Instagram size={18} />
                 </a>
               </div>
@@ -176,7 +172,7 @@ export default function PublicPage() {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {services.map(service => (
+            {services.map((service: any) => (
               <div 
                 key={service.id} 
                 className="group relative bg-white rounded-[2rem] border border-gray-100 luxury-shadow overflow-hidden hover:border-primary/40 transition-all duration-500 cursor-pointer flex flex-col"
@@ -185,7 +181,7 @@ export default function PublicPage() {
                 {/* Image Container */}
                 <div className="relative h-48 overflow-hidden">
                   <WatermarkedImage 
-                    src={service.img} 
+                    src={service.img_url || "https://picsum.photos/400/300"} 
                     alt={service.name} 
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
                   />
@@ -193,7 +189,7 @@ export default function PublicPage() {
                   <div className="absolute bottom-4 left-4 right-4 flex justify-between items-end translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
                     <span className="text-white font-bold text-lg">{service.price}</span>
                     <div className="bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-bold text-white uppercase tracking-widest">
-                      {service.duration}
+                      {service.duration} min
                     </div>
                   </div>
                 </div>
@@ -209,7 +205,7 @@ export default function PublicPage() {
                     </div>
                   </div>
                   <p className="text-gray-500 text-sm leading-relaxed line-clamp-2 mb-4">
-                    {service.description}
+                    {service.description || 'Procedimento estético de alta qualidade.'}
                   </p>
                   
                   <div className="mt-auto pt-4 border-t border-gray-50 flex items-center justify-between">
@@ -224,6 +220,11 @@ export default function PublicPage() {
                 </div>
               </div>
             ))}
+            {services.length === 0 && (
+              <div className="col-span-full text-center py-12 text-gray-500">
+                Nenhum serviço cadastrado no momento.
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -249,10 +250,10 @@ export default function PublicPage() {
               {step === 'details' && (
                 <div className="space-y-4">
                   <div className="w-full h-48 rounded-2xl overflow-hidden">
-                    <WatermarkedImage src={selectedService.img} alt={selectedService.name} className="w-full h-full object-cover" />
+                    <WatermarkedImage src={selectedService.img_url || "https://picsum.photos/400/300"} alt={selectedService.name} className="w-full h-full object-cover" />
                   </div>
                   <h2 className="font-display text-2xl font-bold text-gray-900">{selectedService.name}</h2>
-                  <p className="text-gray-600 text-sm leading-relaxed">{selectedService.description}</p>
+                  <p className="text-gray-600 text-sm leading-relaxed">{selectedService.description || 'Procedimento estético de alta qualidade.'}</p>
                   <div className="flex justify-between items-center bg-primary/5 p-4 rounded-2xl border border-primary/10">
                     <div>
                       <p className="text-xs text-gray-500 uppercase tracking-wider">Valor</p>
@@ -260,7 +261,7 @@ export default function PublicPage() {
                     </div>
                     <div className="text-right">
                       <p className="text-xs text-gray-500 uppercase tracking-wider">Duração</p>
-                      <p className="font-bold text-gray-700">{selectedService.duration}</p>
+                      <p className="font-bold text-gray-700">{selectedService.duration} min</p>
                     </div>
                   </div>
                   <button 
@@ -280,7 +281,7 @@ export default function PublicPage() {
                       <CalendarIcon size={18} className="text-primary" /> Escolha o Dia
                     </label>
                     <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
-                      {[...Array(14)].map((_, i) => {
+                      {[...Array(30)].map((_, i) => {
                         const date = new Date();
                         date.setDate(date.getDate() + i);
                         // Skip Sundays (0)
@@ -289,12 +290,14 @@ export default function PublicPage() {
                         const dateStr = date.toISOString().split('T')[0];
                         const dayName = date.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '');
                         const dayNum = date.getDate();
+                        const blocked = isDateBlocked(dateStr);
                         
                         return (
                           <button 
                             key={dateStr}
+                            disabled={blocked}
                             onClick={() => setSelectedDate(dateStr)}
-                            className={`flex-shrink-0 w-16 h-20 rounded-2xl flex flex-col items-center justify-center gap-1 border transition-all ${selectedDate === dateStr ? 'bg-primary border-primary text-white shadow-md shadow-primary/30' : 'bg-white border-gray-200 text-gray-600 hover:border-primary/50'}`}
+                            className={`flex-shrink-0 w-16 h-20 rounded-2xl flex flex-col items-center justify-center gap-1 border transition-all ${blocked ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed opacity-50' : selectedDate === dateStr ? 'bg-primary border-primary text-white shadow-md shadow-primary/30' : 'bg-white border-gray-200 text-gray-600 hover:border-primary/50'}`}
                           >
                             <span className="text-xs uppercase font-medium">{dayName}</span>
                             <span className="text-xl font-bold">{dayNum}</span>
@@ -311,15 +314,19 @@ export default function PublicPage() {
                         <Clock size={18} className="text-primary" /> Escolha o Horário
                       </label>
                       <div className="grid grid-cols-3 gap-3">
-                        {["09:00", "10:00", "11:00", "14:00", "15:00", "16:00", "17:00", "18:00"].map(time => (
-                          <button
-                            key={time}
-                            onClick={() => setSelectedTime(time)}
-                            className={`py-3 rounded-xl font-bold text-sm transition-all border ${selectedTime === time ? 'bg-primary border-primary text-white shadow-md shadow-primary/30' : 'bg-white border-gray-200 text-gray-600 hover:border-primary/50'}`}
-                          >
-                            {time}
-                          </button>
-                        ))}
+                        {["09:00", "10:00", "11:00", "14:00", "15:00", "16:00", "17:00", "18:00"].map(time => {
+                          const booked = isTimeBooked(selectedDate, time);
+                          return (
+                            <button
+                              key={time}
+                              disabled={booked}
+                              onClick={() => setSelectedTime(time)}
+                              className={`py-3 rounded-xl font-bold text-sm transition-all border ${booked ? 'bg-gray-50 border-gray-100 text-gray-300 cursor-not-allowed line-through' : selectedTime === time ? 'bg-primary border-primary text-white shadow-md shadow-primary/30' : 'bg-white border-gray-200 text-gray-600 hover:border-primary/50'}`}
+                            >
+                              {time}
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
                   )}

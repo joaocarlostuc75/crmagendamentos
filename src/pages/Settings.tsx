@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { User, Mail, Phone, MapPin, Instagram, Clock, Camera, Save, LogOut, ExternalLink, Shield } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Instagram, Clock, Camera, Save, LogOut, ExternalLink, Shield, AlignLeft, CalendarOff, Plus, Trash2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
+import { useLocalStorage } from '../hooks/useLocalStorage';
 
 export default function Settings() {
   const [profile, setProfile] = useState<any>({
@@ -14,6 +15,15 @@ export default function Settings() {
     opening_hours: "",
     logo_url: ""
   });
+  
+  const [extraSettings, setExtraSettings] = useLocalStorage('beauty_agenda_extra_settings', { 
+    description: '', 
+    blockedPeriods: [] as {start: string, end: string}[] 
+  });
+
+  const [newBlockStart, setNewBlockStart] = useState('');
+  const [newBlockEnd, setNewBlockEnd] = useState('');
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const navigate = useNavigate();
@@ -63,6 +73,26 @@ export default function Settings() {
     }
   };
 
+  const handleAddBlock = () => {
+    if (newBlockStart && newBlockEnd) {
+      setExtraSettings({
+        ...extraSettings,
+        blockedPeriods: [...extraSettings.blockedPeriods, { start: newBlockStart, end: newBlockEnd }]
+      });
+      setNewBlockStart('');
+      setNewBlockEnd('');
+    }
+  };
+
+  const handleRemoveBlock = (index: number) => {
+    const newBlocks = [...extraSettings.blockedPeriods];
+    newBlocks.splice(index, 1);
+    setExtraSettings({
+      ...extraSettings,
+      blockedPeriods: newBlocks
+    });
+  };
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate('/login');
@@ -94,7 +124,7 @@ export default function Settings() {
         </div>
       </header>
 
-      <main className="flex-1 p-6 space-y-8 pb-32">
+      <main className="flex-1 p-6 space-y-8 pb-32 overflow-y-auto">
         <form onSubmit={handleSave} className="space-y-8">
           {/* Logo Upload */}
           <div className="flex flex-col items-center">
@@ -202,6 +232,80 @@ export default function Settings() {
                 />
               </div>
             </div>
+            
+            <div>
+              <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Descrição do Estabelecimento</label>
+              <div className="relative">
+                <AlignLeft className="absolute left-4 top-4 text-primary" size={18} />
+                <textarea 
+                  value={extraSettings.description}
+                  onChange={e => setExtraSettings({...extraSettings, description: e.target.value})}
+                  className="w-full pl-12 pr-4 py-3 rounded-2xl border border-gray-100 bg-gray-50/50 focus:bg-white focus:border-primary outline-none transition-all min-h-[100px]"
+                  placeholder="Conte um pouco sobre o seu studio..."
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Bloqueio de Agenda */}
+          <div className="bg-white rounded-[2.5rem] p-8 luxury-shadow border border-gray-50 space-y-6">
+            <div className="flex items-center gap-2 mb-2">
+              <CalendarOff size={18} className="text-primary" />
+              <h3 className="font-display font-bold text-lg text-gray-900">Bloqueios de Agenda</h3>
+            </div>
+            <p className="text-sm text-gray-500 mb-4">Adicione períodos em que você não estará disponível (férias, viagens, etc).</p>
+
+            <div className="flex flex-col md:flex-row gap-4 items-end">
+              <div className="flex-1 w-full">
+                <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Data Inicial</label>
+                <input 
+                  type="date" 
+                  value={newBlockStart}
+                  onChange={e => setNewBlockStart(e.target.value)}
+                  className="w-full px-4 py-3 rounded-2xl border border-gray-100 bg-gray-50/50 focus:bg-white focus:border-primary outline-none transition-all"
+                />
+              </div>
+              <div className="flex-1 w-full">
+                <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Data Final</label>
+                <input 
+                  type="date" 
+                  value={newBlockEnd}
+                  onChange={e => setNewBlockEnd(e.target.value)}
+                  className="w-full px-4 py-3 rounded-2xl border border-gray-100 bg-gray-50/50 focus:bg-white focus:border-primary outline-none transition-all"
+                />
+              </div>
+              <button 
+                type="button"
+                onClick={handleAddBlock}
+                disabled={!newBlockStart || !newBlockEnd}
+                className="bg-primary text-white p-3 rounded-2xl shadow-lg shadow-primary/30 hover:bg-primary-dark transition-all disabled:opacity-50 h-[50px] w-full md:w-auto flex items-center justify-center"
+              >
+                <Plus size={24} />
+              </button>
+            </div>
+
+            {extraSettings.blockedPeriods.length > 0 && (
+              <div className="mt-6 space-y-3">
+                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Períodos Bloqueados</h4>
+                {extraSettings.blockedPeriods.map((period, index) => (
+                  <div key={index} className="flex items-center justify-between p-4 rounded-2xl border border-gray-100 bg-gray-50">
+                    <div className="flex items-center gap-3">
+                      <CalendarOff size={16} className="text-gray-400" />
+                      <span className="text-sm font-medium text-gray-700">
+                        {new Date(period.start + 'T00:00:00').toLocaleDateString('pt-BR')} até {new Date(period.end + 'T00:00:00').toLocaleDateString('pt-BR')}
+                      </span>
+                    </div>
+                    <button 
+                      type="button"
+                      onClick={() => handleRemoveBlock(index)}
+                      className="text-red-400 hover:text-red-600 transition-colors p-2"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="flex gap-4">
