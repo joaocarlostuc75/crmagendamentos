@@ -13,41 +13,49 @@ const TabButton = ({ active, onClick, children }: { active: boolean, onClick: ()
 const EstablishmentsPanel = () => {
   const { data: profiles, loading, error } = useSupabaseData<any>('profiles');
 
-  if (loading) return <div className="text-center p-4">Carregando estabelecimentos...</div>;
-  if (error) return <div className="text-center p-4 text-red-500">Erro ao carregar dados.</div>;
+  if (loading) return <div className="text-center p-8 text-gray-500">Carregando estabelecimentos...</div>;
+  if (error) return <div className="text-center p-8 text-red-500">Erro ao carregar dados.</div>;
 
   return (
-    <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-      <table className="w-full text-sm text-left text-gray-500">
-        <thead className="bg-gray-50 text-xs text-gray-700 uppercase">
-          <tr>
-            <th scope="col" className="px-6 py-3">Nome</th>
-            <th scope="col" className="px-6 py-3">Responsável</th>
-            <th scope="col" className="px-6 py-3">Plano</th>
-            <th scope="col" className="px-6 py-3">Status</th>
-            <th scope="col" className="px-6 py-3"><span className="sr-only">Ações</span></th>
-          </tr>
-        </thead>
-        <tbody>
-          {profiles.map(profile => (
-            <tr key={profile.id} className="bg-white border-b hover:bg-gray-50">
-              <th scope="row" className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">
-                {profile.name}
-              </th>
-              <td className="px-6 py-4">{profile.owner}</td>
-              <td className="px-6 py-4">{profile.plan_id || 'N/A'}</td>
-              <td className="px-6 py-4">
-                <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">Ativo</span>
-              </td>
-              <td className="px-6 py-4 text-right">
-                <button className="p-2 text-gray-400 hover:text-primary"><Eye size={16} /></button>
-                <button className="p-2 text-gray-400 hover:text-yellow-500"><Edit size={16} /></button>
-                <button className="p-2 text-gray-400 hover:text-red-500"><Trash2 size={16} /></button>
-              </td>
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm text-left text-gray-500">
+          <thead className="bg-gray-50 text-xs text-gray-700 uppercase tracking-wider">
+            <tr>
+              <th scope="col" className="px-6 py-4 font-bold">Nome</th>
+              <th scope="col" className="px-6 py-4 font-bold">Responsável</th>
+              <th scope="col" className="px-6 py-4 font-bold">Plano</th>
+              <th scope="col" className="px-6 py-4 font-bold">Status</th>
+              <th scope="col" className="px-6 py-4 text-right font-bold">Ações</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className="divide-y divide-gray-50">
+            {profiles.map(profile => (
+              <tr key={profile.id} className="bg-white hover:bg-gray-50 transition-colors">
+                <th scope="row" className="px-6 py-4 font-bold text-gray-900 whitespace-nowrap">
+                  {profile.name}
+                </th>
+                <td className="px-6 py-4 whitespace-nowrap">{profile.owner}</td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span className="px-2 py-1 bg-primary/5 text-primary rounded-md font-medium">
+                    {profile.plan_id || 'N/A'}
+                  </span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full bg-green-100 text-green-800">Ativo</span>
+                </td>
+                <td className="px-6 py-4 text-right whitespace-nowrap">
+                  <div className="flex justify-end gap-1">
+                    <button className="p-2 text-gray-400 hover:text-primary transition-colors"><Eye size={16} /></button>
+                    <button className="p-2 text-gray-400 hover:text-yellow-500 transition-colors"><Edit size={16} /></button>
+                    <button className="p-2 text-gray-400 hover:text-red-500 transition-colors"><Trash2 size={16} /></button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
@@ -316,9 +324,9 @@ export default function SuperAdmin() {
         </div>
       </header>
 
-      <main className="flex-1 p-6 space-y-6 overflow-y-auto">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 p-1 bg-gray-100 rounded-lg">
+      <main className="flex-1 p-4 md:p-8 space-y-6 overflow-y-auto">
+        <div className="flex items-center justify-between overflow-x-auto pb-2 md:pb-0">
+          <div className="flex items-center gap-2 p-1 bg-gray-100 rounded-xl whitespace-nowrap">
             <TabButton active={activeTab === 'establishments'} onClick={() => setActiveTab('establishments')}>Estabelecimentos</TabButton>
             <TabButton active={activeTab === 'plans'} onClick={() => setActiveTab('plans')}>Planos</TabButton>
             <TabButton active={activeTab === 'features'} onClick={() => setActiveTab('features')}>System Features</TabButton>

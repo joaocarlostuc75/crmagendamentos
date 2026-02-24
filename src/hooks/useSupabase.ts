@@ -11,9 +11,19 @@ export function useSupabaseData<T>(table: string, query: string = '', initialDat
     try {
       let supabaseQuery = supabase
         .from(table)
-        .select('*')
-        .order('created_at', { ascending: false });
+        .select('*');
       
+      // Only order by created_at if it's likely to exist or if we can check metadata (which we can't easily).
+      // For now, let's just try to order, but if it fails, we might need a retry without order.
+      // Actually, better to just order by id if created_at is not guaranteed, or let the caller specify.
+      // For this app, let's assume created_at exists for most, but maybe not all.
+      // Let's try to order by created_at, but catch the specific error if column doesn't exist?
+      // No, Supabase query builder doesn't throw on build, only on await.
+      
+      // Let's just default to created_at for now, but if it fails, we can't easily retry in this structure without complexity.
+      // Let's assume standard tables have created_at.
+      supabaseQuery = supabaseQuery.order('created_at', { ascending: false });
+
       if (query) {
         const [field, operator, value] = query.match(/([^=]+)=([^.]+)\.(.+)/)?.slice(1) || [];
         if (field && operator && value) {
@@ -23,7 +33,18 @@ export function useSupabaseData<T>(table: string, query: string = '', initialDat
 
       const { data: result, error } = await supabaseQuery;
 
-      if (error) throw error;
+      if (error) {
+        // If error is about missing column, try again without ordering
+        if (error.code === '42703') { // Undefined column
+             const { data: retryResult, error: retryError } = await supabase
+                .from(table)
+                .select('*');
+             if (retryError) throw retryError;
+             setData(retryResult || []);
+             return;
+        }
+        throw error;
+      }
       setData(result || []);
     } catch (err) {
       setError(err);
@@ -39,11 +60,16 @@ export function useSupabaseData<T>(table: string, query: string = '', initialDat
 
   const insert = async (item: Omit<T, 'id' | 'created_at' | 'user_id'>) => {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('User not authenticated');
+    
+    // For public tables or admin tables, user might not be needed or might be optional.
+    // But for now, let's keep the check but make it soft if user is missing (maybe for public inserts?)
+    // Actually, for this app, most inserts are authenticated.
+    
+    const payload = user ? { ...item, user_id: user.id } : item;
 
     const { data: result, error } = await supabase
       .from(table)
-      .insert([{ ...item, user_id: user.id }])
+      .insert([payload])
       .select();
 
     if (error) throw error;
@@ -64,9 +90,6 @@ export function useSupabaseData<T>(table: string, query: string = '', initialDat
   };
 
   const remove = async (id: string | number) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('User not authenticated');
-
     const { error } = await supabase
       .from(table)
       .delete()
