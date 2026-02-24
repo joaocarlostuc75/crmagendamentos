@@ -22,8 +22,20 @@ export default function Products() {
     description: '',
     price: '',
     stock: '0',
-    category: 'Cabelo'
+    category: 'Cabelo',
+    image_url: ''
   });
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setNewProduct({ ...newProduct, image_url: reader.result as string });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,7 +46,7 @@ export default function Products() {
         stock: parseInt(newProduct.stock)
       });
       setIsModalOpen(false);
-      setNewProduct({ name: '', description: '', price: '', stock: '0', category: 'Cabelo' });
+      setNewProduct({ name: '', description: '', price: '', stock: '0', category: 'Cabelo', image_url: '' });
     } catch (err) {
       console.error(err);
     }
@@ -128,8 +140,12 @@ export default function Products() {
                   <tr key={product.id} className="hover:bg-gray-50 transition-colors group">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400">
-                          <ShoppingBag size={20} />
+                        <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400 overflow-hidden">
+                          {product.image_url ? (
+                            <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <ShoppingBag size={20} />
+                          )}
                         </div>
                         <span className="text-sm font-bold text-gray-900">{product.name}</span>
                       </div>
@@ -238,6 +254,25 @@ export default function Products() {
                   value={newProduct.description}
                   onChange={(e) => setNewProduct({...newProduct, description: e.target.value})}
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Imagem do Produto</label>
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 rounded-xl bg-gray-100 border border-gray-200 flex items-center justify-center overflow-hidden flex-shrink-0">
+                    {newProduct.image_url ? (
+                      <img src={newProduct.image_url} alt="Preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <ShoppingBag className="text-gray-400" size={24} />
+                    )}
+                  </div>
+                  <input 
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 transition-all"
+                  />
+                </div>
               </div>
 
               <div className="pt-4">

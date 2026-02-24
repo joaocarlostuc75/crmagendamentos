@@ -22,8 +22,20 @@ export default function Services() {
     description: '',
     price: '',
     duration: '60',
-    category: 'Cabelo'
+    category: 'Cabelo',
+    image_url: ''
   });
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setNewService({ ...newService, image_url: reader.result as string });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleAddService = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,7 +45,7 @@ export default function Services() {
         price: parseFloat(newService.price)
       });
       setIsModalOpen(false);
-      setNewService({ name: '', description: '', price: '', duration: '60', category: 'Cabelo' });
+      setNewService({ name: '', description: '', price: '', duration: '60', category: 'Cabelo', image_url: '' });
     } catch (err) {
       console.error(err);
     }
@@ -87,8 +99,12 @@ export default function Services() {
               </div>
 
               <div className="flex items-start gap-4 mb-6">
-                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary flex-shrink-0">
-                  <Scissors size={24} />
+                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary flex-shrink-0 overflow-hidden">
+                  {service.image_url ? (
+                    <img src={service.image_url} alt={service.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <Scissors size={24} />
+                  )}
                 </div>
                 <div>
                   <h3 className="font-bold text-gray-900 text-lg leading-tight">{service.name}</h3>
@@ -205,6 +221,25 @@ export default function Services() {
                   value={newService.description}
                   onChange={(e) => setNewService({...newService, description: e.target.value})}
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Imagem do Serviço</label>
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 rounded-xl bg-gray-100 border border-gray-200 flex items-center justify-center overflow-hidden flex-shrink-0">
+                    {newService.image_url ? (
+                      <img src={newService.image_url} alt="Preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <Scissors className="text-gray-400" size={24} />
+                    )}
+                  </div>
+                  <input 
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 transition-all"
+                  />
+                </div>
               </div>
 
               <div className="pt-4">

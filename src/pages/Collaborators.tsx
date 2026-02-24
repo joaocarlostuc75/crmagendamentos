@@ -23,8 +23,20 @@ export default function Collaborators() {
     email: '',
     phone: '',
     specialty: 'Cabelo',
-    commission: '30'
+    commission: '30',
+    image_url: ''
   });
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setNewCollaborator({ ...newCollaborator, image_url: reader.result as string });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleAddCollaborator = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,7 +46,7 @@ export default function Collaborators() {
         commission: parseFloat(newCollaborator.commission)
       });
       setIsModalOpen(false);
-      setNewCollaborator({ name: '', email: '', phone: '', specialty: 'Cabelo', commission: '30' });
+      setNewCollaborator({ name: '', email: '', phone: '', specialty: 'Cabelo', commission: '30', image_url: '' });
     } catch (err) {
       console.error(err);
     }
@@ -88,8 +100,12 @@ export default function Collaborators() {
               </div>
 
               <div className="flex flex-col items-center text-center mb-6">
-                <div className="w-20 h-20 rounded-2xl bg-primary/10 flex items-center justify-center text-primary text-3xl font-bold mb-4">
-                  {collab.name.charAt(0)}
+                <div className="w-20 h-20 rounded-2xl bg-primary/10 flex items-center justify-center text-primary text-3xl font-bold mb-4 overflow-hidden">
+                  {collab.image_url ? (
+                    <img src={collab.image_url} alt={collab.name} className="w-full h-full object-cover" />
+                  ) : (
+                    collab.name.charAt(0)
+                  )}
                 </div>
                 <h3 className="font-bold text-gray-900 text-lg">{collab.name}</h3>
                 <span className="inline-block px-2 py-0.5 bg-primary/5 text-primary text-[10px] font-bold uppercase tracking-wider rounded-md mt-1">
@@ -203,6 +219,25 @@ export default function Collaborators() {
                     value={newCollaborator.commission}
                     onChange={(e) => setNewCollaborator({...newCollaborator, commission: e.target.value})}
                     required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Foto do Colaborador</label>
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 rounded-xl bg-gray-100 border border-gray-200 flex items-center justify-center overflow-hidden flex-shrink-0">
+                    {newCollaborator.image_url ? (
+                      <img src={newCollaborator.image_url} alt="Preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <Users className="text-gray-400" size={24} />
+                    )}
+                  </div>
+                  <input 
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 transition-all"
                   />
                 </div>
               </div>

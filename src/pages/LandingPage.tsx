@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Check, Star, Calendar, ShoppingBag, BarChart3, Users, MessageCircle, Smartphone, Globe, ShieldCheck, ArrowRight } from 'lucide-react';
+import { Check, Star, Calendar, ShoppingBag, BarChart3, Users, MessageCircle, Smartphone, Globe, ShieldCheck, ArrowRight, Menu, X } from 'lucide-react';
 import { useSupabaseData } from '../hooks/useSupabase';
 
 const plans = [
@@ -96,7 +96,8 @@ const features = [
 ];
 
 export default function LandingPage() {
-  const { data: features } = useSupabaseData<any>('system_features');
+  const { data: featuresData } = useSupabaseData<any>('system_features');
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [contactInfo, setContactInfo] = useState({
     phone: '(11) 99999-9999',
     instagram: '@beautyagenda',
@@ -104,21 +105,21 @@ export default function LandingPage() {
   });
 
   useEffect(() => {
-    if (features) {
+    if (featuresData) {
       const newInfo = { ...contactInfo };
-      features.forEach(f => {
+      featuresData.forEach(f => {
         if (f.name === 'setting_phone') newInfo.phone = f.description;
         if (f.name === 'setting_instagram') newInfo.instagram = f.description;
         if (f.name === 'setting_website') newInfo.website = f.description;
       });
       setContactInfo(newInfo);
     }
-  }, [features]);
+  }, [featuresData]);
 
   return (
     <div className="bg-[#FDFBF7] min-h-screen font-body text-[#1A1A1A]">
       {/* Header */}
-      <header className="container mx-auto px-6 py-6 flex justify-between items-center">
+      <header className="container mx-auto px-6 py-6 flex justify-between items-center relative z-50">
         <div className="flex items-center gap-2">
           <div className="bg-[#C6A84B] text-white p-1.5 rounded-lg">
             <Calendar size={20} />
@@ -128,6 +129,8 @@ export default function LandingPage() {
             <p className="text-[10px] tracking-widest uppercase text-[#C6A84B] font-bold">AGENDA</p>
           </div>
         </div>
+
+        {/* Desktop Nav */}
         <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-600">
           <a href="#features" className="hover:text-[#C6A84B] transition-colors">Funcionalidades</a>
           <a href="#plans" className="hover:text-[#C6A84B] transition-colors">Planos</a>
@@ -136,6 +139,54 @@ export default function LandingPage() {
             CRIAR CONTA AGORA
           </Link>
         </nav>
+
+        {/* Mobile Menu Button */}
+        <button 
+          onClick={() => setIsMenuOpen(!isMenuOpen)}
+          className="md:hidden p-2 text-gray-600 hover:text-[#C6A84B] transition-colors"
+        >
+          {isMenuOpen ? <X size={28} /> : <Menu size={28} />}
+        </button>
+
+        {/* Mobile Nav Overlay */}
+        {isMenuOpen && (
+          <div className="fixed inset-0 bg-white z-40 md:hidden flex flex-col items-center justify-center space-y-8 animate-in fade-in slide-in-from-top duration-300">
+            <button 
+              onClick={() => setIsMenuOpen(false)}
+              className="absolute top-6 right-6 p-2 text-gray-600"
+            >
+              <X size={32} />
+            </button>
+            <a 
+              href="#features" 
+              onClick={() => setIsMenuOpen(false)}
+              className="text-2xl font-display font-bold text-gray-900 hover:text-[#C6A84B] transition-colors"
+            >
+              Funcionalidades
+            </a>
+            <a 
+              href="#plans" 
+              onClick={() => setIsMenuOpen(false)}
+              className="text-2xl font-display font-bold text-gray-900 hover:text-[#C6A84B] transition-colors"
+            >
+              Planos
+            </a>
+            <Link 
+              to="/login" 
+              onClick={() => setIsMenuOpen(false)}
+              className="text-2xl font-display font-bold text-gray-900 hover:text-[#C6A84B] transition-colors"
+            >
+              Entrar
+            </Link>
+            <Link 
+              to="/register" 
+              onClick={() => setIsMenuOpen(false)}
+              className="bg-[#C6A84B] text-white px-10 py-4 rounded-full font-bold text-sm shadow-xl shadow-[#C6A84B]/20"
+            >
+              CRIAR CONTA AGORA
+            </Link>
+          </div>
+        )}
       </header>
 
       {/* Hero Section */}
@@ -167,7 +218,13 @@ export default function LandingPage() {
           <div className="flex items-center gap-4 pt-4">
             <div className="flex -space-x-3">
               {[1, 2, 3, 4].map((i) => (
-                <img key={i} src={`https://i.pravatar.cc/100?img=${i + 10}`} alt="User" className="w-10 h-10 rounded-full border-2 border-white" />
+                <img 
+                  key={i} 
+                  src={`https://picsum.photos/seed/${i + 10}/100/100`} 
+                  alt="User" 
+                  className="w-10 h-10 rounded-full border-2 border-white object-cover" 
+                  referrerPolicy="no-referrer"
+                />
               ))}
             </div>
             <p className="text-sm text-gray-600">

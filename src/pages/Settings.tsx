@@ -97,7 +97,7 @@ export default function Settings() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    navigate('/login');
+    navigate('/');
   };
 
   const copyPublicLink = () => {
