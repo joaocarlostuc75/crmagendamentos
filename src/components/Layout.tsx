@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Outlet, Link, useLocation } from 'react-router-dom';
-import { Home, Calendar, Users, ShoppingBag, DollarSign, Settings, Shield, Users as CollaboratorsIcon, Menu, X } from 'lucide-react';
+import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
+import { Home, Calendar, Users, ShoppingBag, DollarSign, Settings, Shield, Users as CollaboratorsIcon, Menu, X, LogOut } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 
 const navItems = [
   { href: '/app', icon: Home, label: 'Dashboard' },
@@ -16,7 +17,13 @@ const navItems = [
 
 export default function Layout() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate('/');
+  };
 
   return (
     <div className="flex h-screen bg-gray-100">
@@ -67,6 +74,15 @@ export default function Layout() {
               </li>
             ))}
           </ul>
+          <div className="mt-auto pt-4 border-t border-gray-100">
+            <button 
+              onClick={handleLogout}
+              className="w-full flex items-center p-3 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+            >
+              <LogOut className="w-5 h-5 mr-3" />
+              Sair
+            </button>
+          </div>
         </nav>
       </aside>
 

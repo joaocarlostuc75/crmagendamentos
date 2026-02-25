@@ -60,6 +60,9 @@ export default function Settings() {
           ...data,
           logo_url: data.logo_url || localLogo
         });
+        if (data.extra_settings) {
+          setExtraSettings(data.extra_settings);
+        }
       }
     } catch (err) {
       console.error('Error fetching profile:', err);
@@ -80,12 +83,17 @@ export default function Settings() {
 
       // Remove fields that might cause issues if they don't exist in the DB
       const { created_at, updated_at, slug, ...profileToSave } = profile;
+      
+      const payload = {
+        ...profileToSave,
+        extra_settings: extraSettings
+      };
 
-      const attemptSave = async (payload: any): Promise<void> => {
+      const attemptSave = async (p: any): Promise<void> => {
         const { error } = await supabase
           .from('profiles')
           .upsert({ 
-            ...payload, 
+            ...p, 
             id: user.id, 
             updated_at: new Date().toISOString() 
           });
@@ -94,9 +102,9 @@ export default function Settings() {
           if (error.code === '42703') {
             const match = error.message.match(/column "([^"]+)"/);
             const missingColumn = match ? match[1] : null;
-            if (missingColumn && payload[missingColumn] !== undefined) {
+            if (missingColumn && p[missingColumn] !== undefined) {
               console.warn(`Removing missing column "${missingColumn}" from profile save`);
-              const { [missingColumn]: _, ...newPayload } = payload;
+              const { [missingColumn]: _, ...newPayload } = p;
               return attemptSave(newPayload);
             }
           }
@@ -104,7 +112,7 @@ export default function Settings() {
         }
       };
 
-      await attemptSave(profileToSave);
+      await attemptSave(payload);
       alert('Perfil atualizado com sucesso!');
     } catch (err: any) {
       console.error('Error saving profile:', err);

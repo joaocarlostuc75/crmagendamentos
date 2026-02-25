@@ -36,7 +36,7 @@ export default function Collaborators() {
         email: collab.email || '',
         phone: collab.phone || '',
         specialty: collab.specialty || 'Cabelo',
-        commission: collab.commission.toString(),
+        commission: (collab.commission || '30').toString(),
         image_url: collab.image_url || ''
       });
     } else {
@@ -142,7 +142,7 @@ export default function Collaborators() {
                   {collab.image_url ? (
                     <img src={collab.image_url} alt={collab.name} className="w-full h-full object-cover" />
                   ) : (
-                    collab.name.charAt(0)
+                    (collab.name || '?').charAt(0)
                   )}
                 </div>
                 <h3 className="font-bold text-gray-900 text-lg">{collab.name}</h3>

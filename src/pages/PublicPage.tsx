@@ -25,6 +25,10 @@ export default function PublicPage() {
   const [loading, setLoading] = useState(true);
   const [booking, setBooking] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [extraSettings, setExtraSettings] = useState<any>(() => {
+    const saved = localStorage.getItem('beauty_agenda_extra_settings');
+    return saved ? JSON.parse(saved) : { intervals: [] };
+  });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -33,6 +37,10 @@ export default function PublicPage() {
         // In a real app, we'd fetch by slug. For now, let's just fetch the first profile as a demo.
         const { data: profile } = await supabase.from('profiles').select('*').limit(1).single();
         setEstablishment(profile);
+        
+        if (profile?.extra_settings) {
+          setExtraSettings(profile.extra_settings);
+        }
 
         if (profile) {
           const { data: svcs } = await supabase
@@ -218,7 +226,12 @@ export default function PublicPage() {
               <div>
                 <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Horário</label>
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-                  {['09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00', '17:00'].map((time) => (
+                  {['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00'].filter(time => {
+                    if (!extraSettings.intervals) return true;
+                    return !extraSettings.intervals.some((interval: any) => {
+                      return time >= interval.start && time < interval.end;
+                    });
+                  }).map((time) => (
                     <button 
                       key={time}
                       onClick={() => setSelectedTime(time)}
@@ -314,9 +327,21 @@ export default function PublicPage() {
       <footer className="max-w-4xl mx-auto px-4 py-12 border-t border-[#f3eee2] mt-12 text-center">
         <div className="flex flex-col sm:flex-row justify-center gap-4 sm:gap-8 mb-6">
           {establishment?.address && (
-            <div className="flex items-center justify-center gap-2 text-xs text-gray-500">
-              <MapPin size={14} className="text-[#C6A84B]" />
-              <span>{establishment.address}</span>
+            <div className="flex flex-col items-center gap-4">
+              <div className="flex items-center justify-center gap-2 text-xs text-gray-500">
+                <MapPin size={14} className="text-[#C6A84B]" />
+                <span>{establishment.address}</span>
+              </div>
+              <div className="w-full max-w-md h-48 rounded-2xl overflow-hidden border border-[#f3eee2] shadow-sm">
+                <iframe 
+                  width="100%" 
+                  height="100%" 
+                  frameBorder="0" 
+                  style={{ border: 0 }}
+                  src={`https://maps.google.com/maps?q=${encodeURIComponent(establishment.address)}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
+                  allowFullScreen
+                ></iframe>
+              </div>
             </div>
           )}
           {establishment?.phone && (
