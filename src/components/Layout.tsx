@@ -9,6 +9,7 @@ const navItems = [
   { href: '/app/clients', icon: Users, label: 'Clientes' },
   { href: '/app/services', icon: ShoppingBag, label: 'Serviços' },
   { href: '/app/products', icon: ShoppingBag, label: 'Produtos' },
+  { href: '/app/orders', icon: ShoppingBag, label: 'Pedidos' },
   { href: '/app/financial', icon: DollarSign, label: 'Financeiro' },
   { href: '/app/collaborators', icon: CollaboratorsIcon, label: 'Colaboradores' },
   { href: '/app/settings', icon: Settings, label: 'Ajustes' },

@@ -12,6 +12,7 @@ import Services from './pages/Services';
 import Financial from './pages/Financial';
 import Settings from './pages/Settings';
 import Products from './pages/Products';
+import Orders from './pages/Orders';
 import SuperAdmin from './pages/SuperAdmin';
 import Collaborators from './pages/Collaborators';
 import PublicPage from './pages/PublicPage';
@@ -45,6 +46,7 @@ export default function App() {
             <Route path="clients" element={<Clients />} />
             <Route path="services" element={<Services />} />
             <Route path="products" element={<Products />} />
+            <Route path="orders" element={<Orders />} />
             <Route path="financial" element={<Financial />} />
             <Route path="settings" element={<Settings />} />
             <Route path="admin" element={<SuperAdmin />} />
