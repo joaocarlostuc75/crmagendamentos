@@ -88,8 +88,9 @@ export function useSupabaseData<T>(table: string, query: string = '', initialDat
         .select();
 
       if (error) {
-        if (error.code === '42703') {
-          const match = error.message.match(/column "([^"]+)"/);
+        // Handle missing column errors (Postgres 42703 or PostgREST schema cache error)
+        if (error.code === '42703' || error.message?.includes('column') || error.message?.includes('schema cache') || error.message?.includes('not find')) {
+          const match = error.message.match(/column "([^"]+)"/) || error.message.match(/find the '([^']+)' column/);
           const missingColumn = match ? match[1] : null;
           
           if (missingColumn && payload[missingColumn] !== undefined) {
@@ -99,11 +100,18 @@ export function useSupabaseData<T>(table: string, query: string = '', initialDat
           }
           
           if (payload.user_id) {
+            console.warn(`Removing user_id from insert into ${table} as it might be missing`);
             const { user_id, ...newPayload } = payload;
             return attemptInsert(newPayload);
           }
         }
-        throw error;
+        
+        // If we still have an error, fall back to localStorage for this table
+        console.error(`Insert failed for ${table}, falling back to localStorage:`, error);
+        setIsFallback(true);
+        const newItem = { ...payload, id: Math.random().toString(36).substr(2, 9), created_at: new Date().toISOString() };
+        saveLocal([newItem, ...data]);
+        return newItem;
       }
       
       if (result && result.length > 0) {
@@ -136,8 +144,9 @@ export function useSupabaseData<T>(table: string, query: string = '', initialDat
         .select();
 
       if (error) {
-        if (error.code === '42703') {
-          const match = error.message.match(/column "([^"]+)"/);
+        // Handle missing column errors (Postgres 42703 or PostgREST schema cache error)
+        if (error.code === '42703' || error.message?.includes('column') || error.message?.includes('schema cache') || error.message?.includes('not find')) {
+          const match = error.message.match(/column "([^"]+)"/) || error.message.match(/find the '([^']+)' column/);
           const missingColumn = match ? match[1] : null;
           
           if (missingColumn && payload[missingColumn] !== undefined) {
@@ -146,7 +155,13 @@ export function useSupabaseData<T>(table: string, query: string = '', initialDat
             return attemptUpdate(newPayload);
           }
         }
-        throw error;
+        
+        // Fallback to localStorage
+        console.error(`Update failed for ${table}, falling back to localStorage:`, error);
+        setIsFallback(true);
+        const newData = data.map(d => (d as any).id === id ? { ...d, ...payload } : d);
+        saveLocal(newData);
+        return newData.find(d => (d as any).id === id);
       }
       
       if (result && result.length > 0) {

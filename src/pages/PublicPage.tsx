@@ -111,9 +111,18 @@ export default function PublicPage() {
       <header className="bg-white border-b border-[#f3eee2] sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-[#C6A84B]/10 flex items-center justify-center text-[#C6A84B] font-bold">
-              {establishment?.name?.charAt(0)}
-            </div>
+            {establishment?.logo_url ? (
+              <img 
+                src={establishment.logo_url} 
+                alt={establishment.name} 
+                className="w-12 h-12 rounded-full object-cover border border-[#f3eee2]"
+                referrerPolicy="no-referrer"
+              />
+            ) : (
+              <div className="w-12 h-12 rounded-full bg-[#C6A84B]/10 flex items-center justify-center text-[#C6A84B] font-bold text-xl">
+                {establishment?.name?.charAt(0)}
+              </div>
+            )}
             <div>
               <h1 className="font-display font-bold text-gray-900 leading-tight">{establishment?.name}</h1>
               <p className="text-[10px] text-[#C6A84B] font-bold uppercase tracking-widest">Agendamento Online</p>
