@@ -120,11 +120,26 @@ const PlanModal = ({ plan, onClose, onSave }: { plan: any, onClose: () => void, 
 }
 
 const PlansPanel = () => {
-  const { data: plans, loading, error, insert, update, remove } = useSupabaseData<any>('plans');
+  const { data: plans, loading, error, insert, update, remove, refresh } = useSupabaseData<any>('plans');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<any>(null);
 
-  if (loading) return <div className="text-center p-4">Carregando planos...</div>;
+  const defaultPlans = [
+    { name: 'Básico', price: 49.90, features: ['Até 100 agendamentos/mês', '1 Colaborador', 'Suporte por E-mail'], is_active: true },
+    { name: 'Profissional', price: 99.90, features: ['Agendamentos ilimitados', 'Até 5 Colaboradores', 'Suporte WhatsApp', 'Relatórios Básicos'], is_active: true },
+    { name: 'Premium', price: 199.90, features: ['Tudo do Profissional', 'Colaboradores ilimitados', 'Relatórios Avançados', 'Marketing Integrado'], is_active: true }
+  ];
+
+  const handleCreateDefaults = async () => {
+    for (const dp of defaultPlans) {
+      if (!plans.find(p => p.name === dp.name)) {
+        await insert(dp);
+      }
+    }
+    await refresh();
+  };
+
+  if (loading && !plans.length) return <div className="text-center p-4">Carregando planos...</div>;
   if (error) return <div className="text-center p-4 text-red-500">Erro ao carregar dados.</div>;
 
   const handleOpenModal = (plan: any = {}) => {
@@ -148,7 +163,15 @@ const PlansPanel = () => {
 
   return (
     <div>
-      <div className="text-right mb-4">
+      <div className="flex justify-between items-center mb-4">
+        {plans.length === 0 && (
+          <button 
+            onClick={handleCreateDefaults}
+            className="bg-gray-200 text-gray-700 px-4 py-2 rounded-md text-sm font-bold hover:bg-gray-300 transition-colors"
+          >
+            CRIAR PLANOS PADRÃO
+          </button>
+        )}
         <button onClick={() => handleOpenModal()} className="bg-primary text-white px-4 py-2 rounded-md flex items-center gap-2 text-sm ml-auto">
           <PlusCircle size={16} />
           Criar Novo Plano
@@ -183,8 +206,9 @@ const PlansPanel = () => {
 }
 
 const SettingsPanel = () => {
-  const { data: features, loading, error, update, insert } = useSupabaseData<any>('system_features');
+  const { data: features, loading, error, update, insert, refresh } = useSupabaseData<any>('system_features');
   const [settings, setSettings] = useState<{ [key: string]: string }>({});
+  const [savingKey, setSavingKey] = useState<string | null>(null);
 
   useEffect(() => {
     if (features) {
@@ -198,17 +222,26 @@ const SettingsPanel = () => {
     }
   }, [features]);
 
-  if (loading) return <div className="text-center p-4">Carregando configurações...</div>;
+  if (loading && !features.length) return <div className="text-center p-4">Carregando configurações...</div>;
   if (error) return <div className="text-center p-4 text-red-500">Erro ao carregar dados.</div>;
 
   const handleSave = async (key: string, value: string) => {
-    const feature = features.find(f => f.name === key);
-    if (feature) {
-      await update(feature.id, { description: value });
-    } else {
-      await insert({ name: key, description: value, is_enabled: true });
+    setSavingKey(key);
+    try {
+      const feature = features.find(f => f.name === key);
+      if (feature) {
+        await update(feature.id, { description: value });
+      } else {
+        await insert({ name: key, description: value, is_enabled: true });
+        await refresh(); // Refresh to get the new ID
+      }
+      alert('Configuração salva com sucesso!');
+    } catch (err) {
+      console.error(err);
+      alert('Erro ao salvar configuração.');
+    } finally {
+      setSavingKey(null);
     }
-    setSettings(prev => ({ ...prev, [key]: value }));
   };
 
   return (
@@ -228,9 +261,10 @@ const SettingsPanel = () => {
             />
             <button 
               onClick={() => handleSave('setting_phone', settings['setting_phone'])}
-              className="bg-primary text-white px-4 py-2 rounded-md text-sm hover:bg-primary-dark"
+              disabled={savingKey === 'setting_phone'}
+              className="bg-primary text-white px-4 py-2 rounded-md text-sm hover:bg-primary-dark disabled:opacity-50"
             >
-              Salvar
+              {savingKey === 'setting_phone' ? 'Salvando...' : 'Salvar'}
             </button>
           </div>
         </div>
@@ -247,9 +281,10 @@ const SettingsPanel = () => {
             />
             <button 
               onClick={() => handleSave('setting_instagram', settings['setting_instagram'])}
-              className="bg-primary text-white px-4 py-2 rounded-md text-sm hover:bg-primary-dark"
+              disabled={savingKey === 'setting_instagram'}
+              className="bg-primary text-white px-4 py-2 rounded-md text-sm hover:bg-primary-dark disabled:opacity-50"
             >
-              Salvar
+              {savingKey === 'setting_instagram' ? 'Salvando...' : 'Salvar'}
             </button>
           </div>
         </div>
@@ -266,9 +301,10 @@ const SettingsPanel = () => {
             />
             <button 
               onClick={() => handleSave('setting_website', settings['setting_website'])}
-              className="bg-primary text-white px-4 py-2 rounded-md text-sm hover:bg-primary-dark"
+              disabled={savingKey === 'setting_website'}
+              className="bg-primary text-white px-4 py-2 rounded-md text-sm hover:bg-primary-dark disabled:opacity-50"
             >
-              Salvar
+              {savingKey === 'setting_website' ? 'Salvando...' : 'Salvar'}
             </button>
           </div>
         </div>
@@ -278,31 +314,61 @@ const SettingsPanel = () => {
 }
 
 const SystemFeaturesPanel = () => {
-  const { data: features, loading, error, update } = useSupabaseData<any>('system_features');
+  const { data: features, loading, error, update, insert, refresh } = useSupabaseData<any>('system_features');
 
-  if (loading) return <div className="text-center p-4">Carregando features...</div>;
-  if (error) return <div className="text-center p-4 text-red-500">Erro ao carregar dados.</div>;
+  const defaultFeatures = [
+    { name: 'Agendamento Online', description: 'Permite que clientes agendem pelo link público.' },
+    { name: 'Notificações WhatsApp', description: 'Envia lembretes automáticos via WhatsApp.' },
+    { name: 'Gestão de Estoque', description: 'Controle de produtos e alertas de estoque baixo.' },
+    { name: 'Relatórios Financeiros', description: 'Gráficos e relatórios de faturamento.' },
+    { name: 'Multi-Colaboradores', description: 'Suporte para múltiplos profissionais.' }
+  ];
 
   const handleToggle = (feature: any) => {
     update(feature.id, { is_enabled: !feature.is_enabled });
   };
 
+  const handleCreateDefaults = async () => {
+    for (const df of defaultFeatures) {
+      if (!features.find(f => f.name === df.name)) {
+        await insert({ ...df, is_enabled: true });
+      }
+    }
+    await refresh();
+  };
+
+  if (loading && !features.length) return <div className="text-center p-4">Carregando features...</div>;
+  if (error) return <div className="text-center p-4 text-red-500">Erro ao carregar dados.</div>;
+
   // Filter out settings from this view
   const displayFeatures = features.filter(f => !f.name.startsWith('setting_'));
 
   return (
-    <div className="bg-white rounded-lg shadow-sm divide-y divide-gray-200/80">
-      {displayFeatures.map(feature => (
-        <div key={feature.id} className="p-4 flex justify-between items-center">
-          <div>
-            <h4 className="font-medium text-gray-800">{feature.name}</h4>
-            <p className="text-xs text-gray-500">{feature.description}</p>
-          </div>
-          <button onClick={() => handleToggle(feature)} className={`transition-colors ${feature.is_enabled ? 'text-green-500' : 'text-gray-400'}`}>
-            {feature.is_enabled ? <ToggleRight size={24} /> : <ToggleLeft size={24} />}
+    <div className="space-y-4">
+      {displayFeatures.length === 0 && (
+        <div className="bg-white rounded-lg shadow-sm p-8 text-center">
+          <p className="text-gray-500 mb-4">Nenhuma feature do sistema cadastrada.</p>
+          <button 
+            onClick={handleCreateDefaults}
+            className="bg-primary text-white px-6 py-2 rounded-full text-sm font-bold"
+          >
+            CRIAR FEATURES PADRÃO
           </button>
         </div>
-      ))}
+      )}
+      <div className="bg-white rounded-lg shadow-sm divide-y divide-gray-200/80">
+        {displayFeatures.map(feature => (
+          <div key={feature.id} className="p-4 flex justify-between items-center">
+            <div>
+              <h4 className="font-medium text-gray-800">{feature.name}</h4>
+              <p className="text-xs text-gray-500">{feature.description}</p>
+            </div>
+            <button onClick={() => handleToggle(feature)} className={`transition-colors ${feature.is_enabled ? 'text-green-500' : 'text-gray-400'}`}>
+              {feature.is_enabled ? <ToggleRight size={24} /> : <ToggleLeft size={24} />}
+            </button>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

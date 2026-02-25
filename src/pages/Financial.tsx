@@ -47,6 +47,35 @@ export default function Financial() {
     }
   };
 
+  const handleExport = () => {
+    if (!transactions || transactions.length === 0) {
+      alert('Nenhuma transação para exportar.');
+      return;
+    }
+
+    const headers = ['Descrição', 'Tipo', 'Categoria', 'Data', 'Valor'];
+    const csvContent = [
+      headers.join(','),
+      ...transactions.map((t: any) => [
+        `"${t.description}"`,
+        t.type === 'income' ? 'Entrada' : 'Saída',
+        t.category,
+        new Date(t.date).toLocaleDateString('pt-BR'),
+        t.amount.toFixed(2)
+      ].join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `financeiro_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const totalIncome = transactions?.filter((t: any) => t.type === 'income').reduce((acc: number, t: any) => acc + t.amount, 0) || 0;
   const totalExpense = transactions?.filter((t: any) => t.type === 'expense').reduce((acc: number, t: any) => acc + t.amount, 0) || 0;
   const balance = totalIncome - totalExpense;
@@ -59,7 +88,10 @@ export default function Financial() {
           <p className="text-gray-500 text-sm">Controle seu fluxo de caixa e lucratividade.</p>
         </div>
         <div className="flex gap-3">
-          <button className="bg-white border border-gray-100 px-4 py-2.5 rounded-full font-bold text-sm text-gray-600 hover:bg-gray-50 transition-all shadow-sm flex items-center gap-2">
+          <button 
+            onClick={handleExport}
+            className="bg-white border border-gray-100 px-4 py-2.5 rounded-full font-bold text-sm text-gray-600 hover:bg-gray-50 transition-all shadow-sm flex items-center gap-2"
+          >
             <Download size={18} /> EXPORTAR
           </button>
           <button 
@@ -179,7 +211,7 @@ export default function Financial() {
       {/* Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in duration-200">
             <div className="p-6 border-b border-gray-50 flex justify-between items-center">
               <h3 className="text-xl font-bold text-gray-900">Nova Transação</h3>
               <button onClick={() => setIsModalOpen(false)} className="p-2 text-gray-400 hover:text-gray-600">
@@ -187,7 +219,7 @@ export default function Financial() {
               </button>
             </div>
             
-            <form onSubmit={handleAddTransaction} className="p-6 space-y-4">
+            <form onSubmit={handleAddTransaction} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
               <div className="flex p-1 bg-gray-100 rounded-2xl">
                 <button 
                   type="button"

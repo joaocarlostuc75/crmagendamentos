@@ -59,17 +59,27 @@ export default function Settings() {
     setSaving(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) {
+        alert('Usuário não autenticado.');
+        return;
+      }
+
+      // Remove fields that might cause issues if they don't exist in the DB
+      const { created_at, updated_at, ...profileToSave } = profile;
 
       const { error } = await supabase
         .from('profiles')
-        .upsert({ ...profile, id: user.id, updated_at: new Date().toISOString() });
+        .upsert({ 
+          ...profileToSave, 
+          id: user.id, 
+          updated_at: new Date().toISOString() 
+        });
 
       if (error) throw error;
       alert('Perfil atualizado com sucesso!');
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error saving profile:', err);
-      alert('Erro ao salvar perfil.');
+      alert(`Erro ao salvar perfil: ${err.message || 'Erro desconhecido'}`);
     } finally {
       setSaving(false);
     }
@@ -187,26 +197,13 @@ export default function Settings() {
                 </div>
               </div>
               <div>
-                <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-[0.15em] mb-2 ml-1">WhatsApp</label>
+                <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-[0.15em] mb-2 ml-1">WhatsApp Oficial (Notificações)</label>
                 <div className="relative">
                   <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                   <input 
                     type="text" 
                     value={profile.phone || ''}
                     onChange={e => setProfile({...profile, phone: e.target.value})}
-                    className="w-full pl-12 pr-4 py-3.5 rounded-[1.5rem] border border-gray-100 bg-[#f5f2ed]/50 focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all text-sm text-gray-700"
-                    placeholder="(11) 99999-9999"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-[0.15em] mb-2 ml-1">WhatsApp para Notificações</label>
-                <div className="relative">
-                  <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                  <input 
-                    type="text" 
-                    value={profile.whatsapp_number || ''}
-                    onChange={e => setProfile({...profile, whatsapp_number: e.target.value})}
                     className="w-full pl-12 pr-4 py-3.5 rounded-[1.5rem] border border-gray-100 bg-[#f5f2ed]/50 focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all text-sm text-gray-700"
                     placeholder="(11) 99999-9999"
                   />

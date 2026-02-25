@@ -58,23 +58,36 @@ export function useSupabaseData<T>(table: string, query: string = '', initialDat
     fetchData();
   }, [table, query]);
 
-  const insert = async (item: Omit<T, 'id' | 'created_at' | 'user_id'>) => {
+  const insert = async (item: any) => {
     const { data: { user } } = await supabase.auth.getUser();
     
-    // For public tables or admin tables, user might not be needed or might be optional.
-    // But for now, let's keep the check but make it soft if user is missing (maybe for public inserts?)
-    // Actually, for this app, most inserts are authenticated.
-    
-    const payload = user ? { ...item, user_id: user.id } : item;
+    // We'll try to insert with user_id if user exists, 
+    // but if it fails with "column does not exist", we retry without it.
+    try {
+      const payload = user ? { ...item, user_id: user.id } : item;
+      const { data: result, error } = await supabase
+        .from(table)
+        .insert([payload])
+        .select();
 
-    const { data: result, error } = await supabase
-      .from(table)
-      .insert([payload])
-      .select();
-
-    if (error) throw error;
-    setData([result[0], ...data]);
-    return result[0];
+      if (error) {
+        if (error.code === '42703') { // Undefined column user_id
+          const { data: retryResult, error: retryError } = await supabase
+            .from(table)
+            .insert([item])
+            .select();
+          if (retryError) throw retryError;
+          setData([retryResult[0], ...data]);
+          return retryResult[0];
+        }
+        throw error;
+      }
+      setData([result[0], ...data]);
+      return result[0];
+    } catch (err) {
+      console.error(`Error inserting into ${table}:`, err);
+      throw err;
+    }
   };
 
   const update = async (id: string | number, item: Partial<T>) => {

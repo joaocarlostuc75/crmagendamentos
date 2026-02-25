@@ -16,6 +16,7 @@ import {
 export default function Products() {
   const { data: products, loading, insert, update, remove } = useSupabaseData<any>('products');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [newProduct, setNewProduct] = useState({
     name: '',
@@ -25,6 +26,24 @@ export default function Products() {
     category: 'Cabelo',
     image_url: ''
   });
+
+  const handleOpenModal = (product: any = null) => {
+    if (product) {
+      setEditingProduct(product);
+      setNewProduct({
+        name: product.name,
+        description: product.description || '',
+        price: product.price.toString(),
+        stock: product.stock.toString(),
+        category: product.category || 'Cabelo',
+        image_url: product.image_url || ''
+      });
+    } else {
+      setEditingProduct(null);
+      setNewProduct({ name: '', description: '', price: '', stock: '0', category: 'Cabelo', image_url: '' });
+    }
+    setIsModalOpen(true);
+  };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -40,15 +59,34 @@ export default function Products() {
   const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await insert({
+      const payload = {
         ...newProduct,
         price: parseFloat(newProduct.price),
         stock: parseInt(newProduct.stock)
-      });
+      };
+
+      if (editingProduct) {
+        await update(editingProduct.id, payload);
+      } else {
+        await insert(payload);
+      }
       setIsModalOpen(false);
       setNewProduct({ name: '', description: '', price: '', stock: '0', category: 'Cabelo', image_url: '' });
+      setEditingProduct(null);
     } catch (err) {
       console.error(err);
+      alert('Erro ao salvar produto. Verifique os dados e tente novamente.');
+    }
+  };
+
+  const handleDeleteProduct = async (id: string) => {
+    if (confirm('Tem certeza que deseja excluir este produto?')) {
+      try {
+        await remove(id);
+      } catch (err) {
+        console.error(err);
+        alert('Erro ao excluir produto.');
+      }
     }
   };
 
@@ -65,7 +103,7 @@ export default function Products() {
           <p className="text-gray-500 text-sm">Gerencie seu estoque e vendas de produtos.</p>
         </div>
         <button 
-          onClick={() => setIsModalOpen(true)}
+          onClick={() => handleOpenModal()}
           className="bg-primary text-white px-6 py-2.5 rounded-full font-bold text-sm hover:bg-primary-dark transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2"
         >
           <Plus size={18} /> NOVO PRODUTO
@@ -168,8 +206,18 @@ export default function Products() {
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button className="p-2 text-gray-400 hover:text-primary"><Edit size={18} /></button>
-                        <button onClick={() => remove(product.id)} className="p-2 text-gray-400 hover:text-red-500"><Trash2 size={18} /></button>
+                        <button 
+                          onClick={() => handleOpenModal(product)}
+                          className="p-2 text-gray-400 hover:text-primary"
+                        >
+                          <Edit size={18} />
+                        </button>
+                        <button 
+                          onClick={() => handleDeleteProduct(product.id)} 
+                          className="p-2 text-gray-400 hover:text-red-500"
+                        >
+                          <Trash2 size={18} />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -183,41 +231,43 @@ export default function Products() {
       {/* Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
             <div className="p-6 border-b border-gray-50 flex justify-between items-center">
-              <h3 className="text-xl font-bold text-gray-900">Novo Produto</h3>
+              <h3 className="text-xl font-bold text-gray-900">{editingProduct ? 'Editar Produto' : 'Novo Produto'}</h3>
               <button onClick={() => setIsModalOpen(false)} className="p-2 text-gray-400 hover:text-gray-600">
                 <X size={24} />
               </button>
             </div>
             
-            <form onSubmit={handleAddProduct} className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Nome do Produto</label>
-                <input 
-                  type="text"
-                  className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-                  placeholder="Ex: Shampoo Hidratante"
-                  value={newProduct.name}
-                  onChange={(e) => setNewProduct({...newProduct, name: e.target.value})}
-                  required
-                />
-              </div>
+            <form onSubmit={handleAddProduct} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Nome do Produto</label>
+                  <input 
+                    type="text"
+                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                    placeholder="Ex: Shampoo Hidratante"
+                    value={newProduct.name}
+                    onChange={(e) => setNewProduct({...newProduct, name: e.target.value})}
+                    required
+                  />
+                </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Categoria</label>
-                <select 
-                  className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-                  value={newProduct.category}
-                  onChange={(e) => setNewProduct({...newProduct, category: e.target.value})}
-                  required
-                >
-                  <option value="Cabelo">Cabelo</option>
-                  <option value="Unhas">Unhas</option>
-                  <option value="Estética">Estética</option>
-                  <option value="Maquiagem">Maquiagem</option>
-                  <option value="Acessórios">Acessórios</option>
-                </select>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Categoria</label>
+                  <select 
+                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                    value={newProduct.category}
+                    onChange={(e) => setNewProduct({...newProduct, category: e.target.value})}
+                    required
+                  >
+                    <option value="Cabelo">Cabelo</option>
+                    <option value="Unhas">Unhas</option>
+                    <option value="Estética">Estética</option>
+                    <option value="Maquiagem">Maquiagem</option>
+                    <option value="Acessórios">Acessórios</option>
+                  </select>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -280,7 +330,7 @@ export default function Products() {
                   type="submit"
                   className="w-full bg-primary text-white py-4 rounded-2xl font-bold shadow-lg shadow-primary/20 hover:bg-primary-dark transition-all transform hover:scale-[1.02]"
                 >
-                  CADASTRAR PRODUTO
+                  {editingProduct ? 'SALVAR ALTERAÇÕES' : 'CADASTRAR PRODUTO'}
                 </button>
               </div>
             </form>

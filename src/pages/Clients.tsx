@@ -17,6 +17,7 @@ import {
 export default function Clients() {
   const { data: clients, loading, insert, update, remove } = useSupabaseData<any>('clients');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingClient, setEditingClient] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [newClient, setNewClient] = useState({
     name: '',
@@ -25,14 +26,47 @@ export default function Clients() {
     notes: ''
   });
 
+  const handleOpenModal = (client: any = null) => {
+    if (client) {
+      setEditingClient(client);
+      setNewClient({
+        name: client.name,
+        email: client.email || '',
+        phone: client.phone || '',
+        notes: client.notes || ''
+      });
+    } else {
+      setEditingClient(null);
+      setNewClient({ name: '', email: '', phone: '', notes: '' });
+    }
+    setIsModalOpen(true);
+  };
+
   const handleAddClient = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await insert(newClient);
+      if (editingClient) {
+        await update(editingClient.id, newClient);
+      } else {
+        await insert(newClient);
+      }
       setIsModalOpen(false);
       setNewClient({ name: '', email: '', phone: '', notes: '' });
+      setEditingClient(null);
     } catch (err) {
       console.error(err);
+      alert('Erro ao salvar cliente.');
+    }
+  };
+
+  const handleDeleteClient = async (id: string) => {
+    if (confirm('Tem certeza que deseja excluir este cliente?')) {
+      try {
+        await remove(id);
+      } catch (err) {
+        console.error(err);
+        alert('Erro ao excluir cliente.');
+      }
     }
   };
 
@@ -50,7 +84,7 @@ export default function Clients() {
           <p className="text-gray-500 text-sm">Gerencie sua base de clientes e histórico.</p>
         </div>
         <button 
-          onClick={() => setIsModalOpen(true)}
+          onClick={() => handleOpenModal()}
           className="bg-primary text-white px-6 py-2.5 rounded-full font-bold text-sm hover:bg-primary-dark transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2"
         >
           <Plus size={18} /> NOVO CLIENTE
@@ -83,9 +117,18 @@ export default function Clients() {
         ) : (
           filteredClients?.map((client: any) => (
             <div key={client.id} className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 hover:shadow-md transition-all group relative">
-              <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button className="p-2 text-gray-400 hover:text-gray-600">
-                  <MoreVertical size={18} />
+              <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                <button 
+                  onClick={() => handleOpenModal(client)}
+                  className="p-2 text-gray-400 hover:text-primary"
+                >
+                  <Edit size={18} />
+                </button>
+                <button 
+                  onClick={() => handleDeleteClient(client.id)}
+                  className="p-2 text-gray-400 hover:text-red-500"
+                >
+                  <Trash2 size={18} />
                 </button>
               </div>
 
@@ -111,12 +154,20 @@ export default function Clients() {
               </div>
 
               <div className="flex gap-2">
-                <button className="flex-1 bg-gray-50 text-gray-600 py-2 rounded-xl text-xs font-bold hover:bg-gray-100 transition-colors flex items-center justify-center gap-2">
+                <button 
+                  onClick={() => handleOpenModal(client)}
+                  className="flex-1 bg-gray-50 text-gray-600 py-2 rounded-xl text-xs font-bold hover:bg-gray-100 transition-colors flex items-center justify-center gap-2"
+                >
                   <Edit size={14} /> EDITAR
                 </button>
-                <button className="flex-1 bg-primary/10 text-primary py-2 rounded-xl text-xs font-bold hover:bg-primary/20 transition-colors flex items-center justify-center gap-2">
+                <a 
+                  href={`https://wa.me/55${client.phone?.replace(/\D/g, '')}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex-1 bg-primary/10 text-primary py-2 rounded-xl text-xs font-bold hover:bg-primary/20 transition-colors flex items-center justify-center gap-2"
+                >
                   <MessageCircle size={14} /> WHATSAPP
-                </button>
+                </a>
               </div>
             </div>
           ))
@@ -126,15 +177,15 @@ export default function Clients() {
       {/* Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in duration-200">
             <div className="p-6 border-b border-gray-50 flex justify-between items-center">
-              <h3 className="text-xl font-bold text-gray-900">Novo Cliente</h3>
+              <h3 className="text-xl font-bold text-gray-900">{editingClient ? 'Editar Cliente' : 'Novo Cliente'}</h3>
               <button onClick={() => setIsModalOpen(false)} className="p-2 text-gray-400 hover:text-gray-600">
                 <X size={24} />
               </button>
             </div>
             
-            <form onSubmit={handleAddClient} className="p-6 space-y-4">
+            <form onSubmit={handleAddClient} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Nome Completo</label>
                 <input 
@@ -185,7 +236,7 @@ export default function Clients() {
                   type="submit"
                   className="w-full bg-primary text-white py-4 rounded-2xl font-bold shadow-lg shadow-primary/20 hover:bg-primary-dark transition-all transform hover:scale-[1.02]"
                 >
-                  CADASTRAR CLIENTE
+                  {editingClient ? 'SALVAR ALTERAÇÕES' : 'CADASTRAR CLIENTE'}
                 </button>
               </div>
             </form>

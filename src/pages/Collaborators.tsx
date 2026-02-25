@@ -17,6 +17,7 @@ import {
 export default function Collaborators() {
   const { data: collaborators, loading, insert, update, remove } = useSupabaseData<any>('collaborators');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingCollaborator, setEditingCollaborator] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [newCollaborator, setNewCollaborator] = useState({
     name: '',
@@ -26,6 +27,24 @@ export default function Collaborators() {
     commission: '30',
     image_url: ''
   });
+
+  const handleOpenModal = (collab: any = null) => {
+    if (collab) {
+      setEditingCollaborator(collab);
+      setNewCollaborator({
+        name: collab.name,
+        email: collab.email || '',
+        phone: collab.phone || '',
+        specialty: collab.specialty || 'Cabelo',
+        commission: collab.commission.toString(),
+        image_url: collab.image_url || ''
+      });
+    } else {
+      setEditingCollaborator(null);
+      setNewCollaborator({ name: '', email: '', phone: '', specialty: 'Cabelo', commission: '30', image_url: '' });
+    }
+    setIsModalOpen(true);
+  };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -41,14 +60,33 @@ export default function Collaborators() {
   const handleAddCollaborator = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await insert({
+      const payload = {
         ...newCollaborator,
         commission: parseFloat(newCollaborator.commission)
-      });
+      };
+
+      if (editingCollaborator) {
+        await update(editingCollaborator.id, payload);
+      } else {
+        await insert(payload);
+      }
       setIsModalOpen(false);
       setNewCollaborator({ name: '', email: '', phone: '', specialty: 'Cabelo', commission: '30', image_url: '' });
+      setEditingCollaborator(null);
     } catch (err) {
       console.error(err);
+      alert('Erro ao salvar colaborador.');
+    }
+  };
+
+  const handleDeleteCollaborator = async (id: string) => {
+    if (confirm('Tem certeza que deseja excluir este colaborador?')) {
+      try {
+        await remove(id);
+      } catch (err) {
+        console.error(err);
+        alert('Erro ao excluir colaborador.');
+      }
     }
   };
 
@@ -65,7 +103,7 @@ export default function Collaborators() {
           <p className="text-gray-500 text-sm">Gerencie sua equipe e comissões.</p>
         </div>
         <button 
-          onClick={() => setIsModalOpen(true)}
+          onClick={() => handleOpenModal()}
           className="bg-primary text-white px-6 py-2.5 rounded-full font-bold text-sm hover:bg-primary-dark transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2"
         >
           <Plus size={18} /> NOVO COLABORADOR
@@ -132,11 +170,14 @@ export default function Collaborators() {
               </div>
 
               <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button className="flex-1 bg-gray-50 text-gray-600 py-2 rounded-xl text-xs font-bold hover:bg-gray-100 transition-colors flex items-center justify-center gap-2">
+                <button 
+                  onClick={() => handleOpenModal(collab)}
+                  className="flex-1 bg-gray-50 text-gray-600 py-2 rounded-xl text-xs font-bold hover:bg-gray-100 transition-colors flex items-center justify-center gap-2"
+                >
                   <Edit size={14} /> EDITAR
                 </button>
                 <button 
-                  onClick={() => remove(collab.id)}
+                  onClick={() => handleDeleteCollaborator(collab.id)}
                   className="flex-1 bg-red-50 text-red-600 py-2 rounded-xl text-xs font-bold hover:bg-red-100 transition-colors flex items-center justify-center gap-2"
                 >
                   <Trash2 size={14} /> EXCLUIR
@@ -150,15 +191,15 @@ export default function Collaborators() {
       {/* Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
             <div className="p-6 border-b border-gray-50 flex justify-between items-center">
-              <h3 className="text-xl font-bold text-gray-900">Novo Colaborador</h3>
+              <h3 className="text-xl font-bold text-gray-900">{editingCollaborator ? 'Editar Colaborador' : 'Novo Colaborador'}</h3>
               <button onClick={() => setIsModalOpen(false)} className="p-2 text-gray-400 hover:text-gray-600">
                 <X size={24} />
               </button>
             </div>
             
-            <form onSubmit={handleAddCollaborator} className="p-6 space-y-4">
+            <form onSubmit={handleAddCollaborator} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Nome Completo</label>
                 <input 
@@ -171,7 +212,7 @@ export default function Collaborators() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">E-mail</label>
                   <input 
@@ -247,7 +288,7 @@ export default function Collaborators() {
                   type="submit"
                   className="w-full bg-primary text-white py-4 rounded-2xl font-bold shadow-lg shadow-primary/20 hover:bg-primary-dark transition-all transform hover:scale-[1.02]"
                 >
-                  CADASTRAR COLABORADOR
+                  {editingCollaborator ? 'SALVAR ALTERAÇÕES' : 'CADASTRAR COLABORADOR'}
                 </button>
               </div>
             </form>
