@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useSupabaseData } from '../hooks/useSupabase';
+import { useLocalStorage } from '../hooks/useLocalStorage';
 import { 
   Plus, 
   ChevronLeft, 
@@ -13,7 +14,8 @@ import {
   Calendar as CalendarIcon,
   LayoutGrid,
   Columns,
-  CalendarDays
+  CalendarDays,
+  CalendarOff
 } from 'lucide-react';
 import { 
   format, 
@@ -28,7 +30,8 @@ import {
   subMonths,
   eachDayOfInterval,
   startOfDay,
-  parseISO
+  parseISO,
+  isWithinInterval
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -36,6 +39,11 @@ export default function Schedule() {
   const { data: appointments, loading, insert, update, remove } = useSupabaseData<any>('appointments');
   const { data: clients } = useSupabaseData<any>('clients');
   const { data: services } = useSupabaseData<any>('services');
+  const [extraSettings] = useLocalStorage('beauty_agenda_extra_settings', { 
+    description: '', 
+    blockedPeriods: [] as {start: string, end: string, reason: string}[],
+    intervals: [] as {start: string, end: string, label: string}[]
+  });
   
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [view, setView] = useState<'day' | 'week' | 'month'>('day');
@@ -48,8 +56,47 @@ export default function Schedule() {
     status: 'pending'
   });
 
+  const isDateBlocked = (date: Date) => {
+    return extraSettings.blockedPeriods?.some(block => {
+      const start = parseISO(block.start);
+      const end = parseISO(block.end);
+      return isWithinInterval(startOfDay(date), { start: startOfDay(start), end: startOfDay(end) });
+    });
+  };
+
+  const getBlockedReason = (date: Date) => {
+    return extraSettings.blockedPeriods?.find(block => {
+      const start = parseISO(block.start);
+      const end = parseISO(block.end);
+      return isWithinInterval(startOfDay(date), { start: startOfDay(start), end: startOfDay(end) });
+    })?.reason;
+  };
+
+  const isTimeInInterval = (time: string) => {
+    return extraSettings.intervals?.some(interval => {
+      return time >= interval.start && time < interval.end;
+    });
+  };
+
+  const getIntervalLabel = (time: string) => {
+    return extraSettings.intervals?.find(interval => {
+      return time >= interval.start && time < interval.end;
+    })?.label;
+  };
+
   const handleAddAppointment = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (isDateBlocked(parseISO(newAppointment.date))) {
+      alert(`Este dia está bloqueado: ${getBlockedReason(parseISO(newAppointment.date))}`);
+      return;
+    }
+
+    if (isTimeInInterval(newAppointment.time)) {
+      alert(`Este horário está em um intervalo: ${getIntervalLabel(newAppointment.time)}`);
+      return;
+    }
+
     try {
       await insert(newAppointment);
       setIsModalOpen(false);
@@ -66,7 +113,7 @@ export default function Schedule() {
     }
   };
 
-  const hours = Array.from({ length: 13 }, (_, i) => `${i + 8}:00`);
+  const hours = Array.from({ length: 13 }, (_, i) => `${(i + 8).toString().padStart(2, '0')}:00`);
 
   const renderHeader = () => (
     <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -97,7 +144,8 @@ export default function Schedule() {
         </div>
         <button 
           onClick={() => setIsModalOpen(true)}
-          className="bg-primary text-white px-6 py-2.5 rounded-full font-bold text-sm hover:bg-primary-dark transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2"
+          disabled={isDateBlocked(selectedDate)}
+          className="bg-primary text-white px-6 py-2.5 rounded-full font-bold text-sm hover:bg-primary-dark transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Plus size={18} /> NOVO AGENDAMENTO
         </button>
@@ -105,79 +153,103 @@ export default function Schedule() {
     </header>
   );
 
-  const renderDayView = () => (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-      <div className="p-6 border-b border-gray-50 flex items-center justify-between">
-        <div className="flex items-center gap-2 text-gray-900 font-bold">
-          <CalendarIcon size={20} className="text-primary" />
-          <span>Agenda de {format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}</span>
+  const renderDayView = () => {
+    const blockedReason = getBlockedReason(selectedDate);
+    
+    return (
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="p-6 border-b border-gray-50 flex items-center justify-between">
+          <div className="flex items-center gap-2 text-gray-900 font-bold">
+            <CalendarIcon size={20} className="text-primary" />
+            <span>Agenda de {format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}</span>
+            {blockedReason && (
+              <span className="ml-2 px-2 py-1 bg-red-50 text-red-600 text-[10px] uppercase tracking-wider rounded-md flex items-center gap-1">
+                <CalendarOff size={12} /> {blockedReason}
+              </span>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <button onClick={() => setSelectedDate(addDays(selectedDate, -1))} className="p-2 hover:bg-gray-100 rounded-full text-gray-400"><ChevronLeft size={20} /></button>
+            <button onClick={() => setSelectedDate(new Date())} className="px-3 py-1 text-xs font-bold text-primary hover:bg-primary/5 rounded-full">HOJE</button>
+            <button onClick={() => setSelectedDate(addDays(selectedDate, 1))} className="p-2 hover:bg-gray-100 rounded-full text-gray-400"><ChevronRight size={20} /></button>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <button onClick={() => setSelectedDate(addDays(selectedDate, -1))} className="p-2 hover:bg-gray-100 rounded-full text-gray-400"><ChevronLeft size={20} /></button>
-          <button onClick={() => setSelectedDate(new Date())} className="px-3 py-1 text-xs font-bold text-primary hover:bg-primary/5 rounded-full">HOJE</button>
-          <button onClick={() => setSelectedDate(addDays(selectedDate, 1))} className="p-2 hover:bg-gray-100 rounded-full text-gray-400"><ChevronRight size={20} /></button>
-        </div>
-      </div>
 
-      <div className="divide-y divide-gray-50">
-        {hours.map((hour) => {
-          const hourAppointments = appointments?.filter((a: any) => 
-            isSameDay(parseISO(a.date), selectedDate) && a.time === hour
-          ) || [];
-          
-          return (
-            <div key={hour} className="flex min-h-[80px] group">
-              <div className="w-20 p-4 border-r border-gray-50 flex flex-col items-center justify-start">
-                <span className="text-sm font-bold text-gray-900">{hour}</span>
-              </div>
-              <div className="flex-1 p-2 flex flex-col gap-2 bg-gray-50/30 group-hover:bg-white transition-colors">
-                {hourAppointments.length > 0 ? (
-                  hourAppointments.map((app: any) => (
-                    <div key={app.id} className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between group/item">
-                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                          <User size={20} />
-                        </div>
-                        <div>
-                          <p className="text-sm font-bold text-gray-900">
-                            {clients?.find((c: any) => c.id === app.client_id)?.name || 'Cliente'}
-                          </p>
-                          <p className="text-xs text-gray-500 flex items-center gap-1">
-                            <Scissors size={12} />
-                            {services?.find((s: any) => s.id === app.service_id)?.name || 'Serviço'}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className={`px-2 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full ${app.status === 'confirmed' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
-                          {app.status === 'confirmed' ? 'Confirmado' : 'Pendente'}
-                        </span>
-                        <button className="p-2 text-gray-400 hover:text-gray-600">
-                          <MoreVertical size={16} />
-                        </button>
-                      </div>
+        <div className="divide-y divide-gray-50">
+          {hours.map((hour) => {
+            const hourAppointments = appointments?.filter((a: any) => 
+              isSameDay(parseISO(a.date), selectedDate) && a.time === hour
+            ) || [];
+            
+            const intervalLabel = getIntervalLabel(hour);
+            const isBlocked = !!blockedReason;
+
+            return (
+              <div key={hour} className={`flex min-h-[80px] group ${isBlocked || intervalLabel ? 'bg-gray-50/50' : ''}`}>
+                <div className="w-20 p-4 border-r border-gray-50 flex flex-col items-center justify-start">
+                  <span className="text-sm font-bold text-gray-900">{hour}</span>
+                </div>
+                <div className="flex-1 p-2 flex flex-col gap-2 transition-colors relative">
+                  {isBlocked ? (
+                    <div className="h-full flex items-center justify-center text-gray-400 text-xs font-medium uppercase tracking-widest">
+                      Dia Bloqueado ({blockedReason})
                     </div>
-                  ))
-                ) : (
-                  <div className="h-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button 
-                      onClick={() => {
-                        setNewAppointment({...newAppointment, time: hour, date: format(selectedDate, 'yyyy-MM-dd')});
-                        setIsModalOpen(true);
-                      }}
-                      className="text-xs font-bold text-primary hover:underline flex items-center gap-1"
-                    >
-                      <Plus size={14} /> AGENDAR ÀS {hour}
-                    </button>
-                  </div>
-                )}
+                  ) : intervalLabel ? (
+                    <div className="h-full flex items-center justify-center text-orange-400 text-xs font-medium uppercase tracking-widest bg-orange-50/30 rounded-xl border border-dashed border-orange-100">
+                      {intervalLabel}
+                    </div>
+                  ) : (
+                    <>
+                      {hourAppointments.length > 0 ? (
+                        hourAppointments.map((app: any) => (
+                          <div key={app.id} className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between group/item">
+                            <div className="flex items-center gap-4">
+                              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                                <User size={20} />
+                              </div>
+                              <div>
+                                <p className="text-sm font-bold text-gray-900">
+                                  {clients?.find((c: any) => c.id === app.client_id)?.name || 'Cliente'}
+                                </p>
+                                <p className="text-xs text-gray-500 flex items-center gap-1">
+                                  <Scissors size={12} />
+                                  {services?.find((s: any) => s.id === app.service_id)?.name || 'Serviço'}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className={`px-2 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full ${app.status === 'confirmed' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
+                                {app.status === 'confirmed' ? 'Confirmado' : 'Pendente'}
+                              </span>
+                              <button className="p-2 text-gray-400 hover:text-gray-600">
+                                <MoreVertical size={16} />
+                              </button>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="h-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button 
+                            onClick={() => {
+                              setNewAppointment({...newAppointment, time: hour, date: format(selectedDate, 'yyyy-MM-dd')});
+                              setIsModalOpen(true);
+                            }}
+                            className="text-xs font-bold text-primary hover:underline flex items-center gap-1"
+                          >
+                            <Plus size={14} /> AGENDAR ÀS {hour}
+                          </button>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderWeekView = () => {
     const start = startOfWeek(selectedDate, { weekStartsOn: 0 });
@@ -206,41 +278,59 @@ export default function Schedule() {
               </div>
             ))}
           </div>
-          {weekDays.map(day => (
-            <div key={day.toString()} className="col-span-1">
-              <div className={`h-16 border-b border-gray-50 p-2 flex flex-col items-center justify-center ${isSameDay(day, new Date()) ? 'bg-primary/5' : ''}`}>
-                <span className="text-[10px] font-bold text-gray-400 uppercase">{format(day, 'EEE', { locale: ptBR })}</span>
-                <span className={`text-lg font-bold ${isSameDay(day, new Date()) ? 'text-primary' : 'text-gray-900'}`}>{format(day, 'dd')}</span>
+          {weekDays.map(day => {
+            const blockedReason = getBlockedReason(day);
+            return (
+              <div key={day.toString()} className="col-span-1">
+                <div className={`h-16 border-b border-gray-50 p-2 flex flex-col items-center justify-center ${isSameDay(day, new Date()) ? 'bg-primary/5' : ''}`}>
+                  <span className="text-[10px] font-bold text-gray-400 uppercase">{format(day, 'EEE', { locale: ptBR })}</span>
+                  <span className={`text-lg font-bold ${isSameDay(day, new Date()) ? 'text-primary' : 'text-gray-900'}`}>{format(day, 'dd')}</span>
+                </div>
+                {hours.map(hour => {
+                  const dayAppointments = appointments?.filter((a: any) => 
+                    isSameDay(parseISO(a.date), day) && a.time === hour
+                  ) || [];
+                  
+                  const intervalLabel = getIntervalLabel(hour);
+                  const isBlocked = !!blockedReason;
+
+                  return (
+                    <div key={hour} className={`h-20 border-b border-gray-50 p-1 relative group ${isBlocked ? 'bg-red-50/20' : intervalLabel ? 'bg-orange-50/20' : ''}`}>
+                      {isBlocked ? (
+                        <div className="h-full flex items-center justify-center" title={blockedReason}>
+                          <CalendarOff size={12} className="text-red-300" />
+                        </div>
+                      ) : intervalLabel ? (
+                        <div className="h-full flex items-center justify-center" title={intervalLabel}>
+                          <Clock size={12} className="text-orange-300" />
+                        </div>
+                      ) : (
+                        <>
+                          {dayAppointments.map((app: any) => (
+                            <div key={app.id} className="bg-primary/10 border-l-2 border-primary p-1 rounded-md h-full overflow-hidden cursor-pointer hover:bg-primary/20 transition-colors">
+                              <p className="text-[9px] font-bold text-primary truncate">{clients?.find((c: any) => c.id === app.client_id)?.name}</p>
+                              <p className="text-[8px] text-primary/70 truncate">{services?.find((s: any) => s.id === app.service_id)?.name}</p>
+                            </div>
+                          ))}
+                          {!dayAppointments.length && (
+                            <button 
+                              onClick={() => {
+                                setNewAppointment({...newAppointment, time: hour, date: format(day, 'yyyy-MM-dd')});
+                                setIsModalOpen(true);
+                              }}
+                              className="absolute inset-0 opacity-0 group-hover:opacity-100 bg-primary/5 flex items-center justify-center"
+                            >
+                              <Plus size={14} className="text-primary" />
+                            </button>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
-              {hours.map(hour => {
-                const dayAppointments = appointments?.filter((a: any) => 
-                  isSameDay(parseISO(a.date), day) && a.time === hour
-                ) || [];
-                
-                return (
-                  <div key={hour} className="h-20 border-b border-gray-50 p-1 relative group">
-                    {dayAppointments.map((app: any) => (
-                      <div key={app.id} className="bg-primary/10 border-l-2 border-primary p-1 rounded-md h-full overflow-hidden cursor-pointer hover:bg-primary/20 transition-colors">
-                        <p className="text-[9px] font-bold text-primary truncate">{clients?.find((c: any) => c.id === app.client_id)?.name}</p>
-                        <p className="text-[8px] text-primary/70 truncate">{services?.find((s: any) => s.id === app.service_id)?.name}</p>
-                      </div>
-                    ))}
-                    {!dayAppointments.length && (
-                      <button 
-                        onClick={() => {
-                          setNewAppointment({...newAppointment, time: hour, date: format(day, 'yyyy-MM-dd')});
-                          setIsModalOpen(true);
-                        }}
-                        className="absolute inset-0 opacity-0 group-hover:opacity-100 bg-primary/5 flex items-center justify-center"
-                      >
-                        <Plus size={14} className="text-primary" />
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     );
@@ -278,20 +368,26 @@ export default function Schedule() {
             const dayAppointments = appointments?.filter((a: any) => isSameDay(parseISO(a.date), day)) || [];
             const isCurrentMonth = isSameMonth(day, monthStart);
             const isToday = isSameDay(day, new Date());
+            const blockedReason = getBlockedReason(day);
 
             return (
               <div 
                 key={day.toString()} 
-                className={`min-h-[120px] p-2 transition-colors hover:bg-gray-50/50 cursor-pointer group ${!isCurrentMonth ? 'bg-gray-50/30' : ''}`}
+                className={`min-h-[120px] p-2 transition-colors hover:bg-gray-50/50 cursor-pointer group ${!isCurrentMonth ? 'bg-gray-50/30' : ''} ${blockedReason ? 'bg-red-50/10' : ''}`}
                 onClick={() => {
                   setSelectedDate(day);
                   setView('day');
                 }}
               >
                 <div className="flex justify-between items-start mb-2">
-                  <span className={`text-sm font-bold ${isToday ? 'bg-primary text-white w-6 h-6 flex items-center justify-center rounded-full' : isCurrentMonth ? 'text-gray-900' : 'text-gray-300'}`}>
-                    {format(day, 'd')}
-                  </span>
+                  <div className="flex flex-col">
+                    <span className={`text-sm font-bold ${isToday ? 'bg-primary text-white w-6 h-6 flex items-center justify-center rounded-full' : isCurrentMonth ? 'text-gray-900' : 'text-gray-300'}`}>
+                      {format(day, 'd')}
+                    </span>
+                    {blockedReason && (
+                      <span className="text-[8px] text-red-500 font-bold uppercase mt-1">{blockedReason}</span>
+                    )}
+                  </div>
                   {dayAppointments.length > 0 && (
                     <span className="text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded-md">
                       {dayAppointments.length}

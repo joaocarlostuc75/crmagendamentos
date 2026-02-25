@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useSupabaseData } from '../hooks/useSupabase';
+import { useLocalStorage } from '../hooks/useLocalStorage';
 import { 
   Plus, 
   TrendingUp, 
@@ -17,7 +18,8 @@ import {
 } from 'lucide-react';
 
 export default function Financial() {
-  const { data: transactions, loading, insert, remove } = useSupabaseData<any>('financial_transactions');
+  const { data: supabaseTransactions, loading: supabaseLoading, error: supabaseError, insert, remove } = useSupabaseData<any>('financial_transactions');
+  const [localTransactions, setLocalTransactions] = useLocalStorage('beauty_agenda_financial_fallback', [] as any[]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newTransaction, setNewTransaction] = useState({
     description: '',
@@ -26,6 +28,19 @@ export default function Financial() {
     category: 'Serviço',
     date: new Date().toISOString().split('T')[0]
   });
+  
+  // Use Supabase data if available and no error, otherwise fallback to local storage
+  const isUsingFallback = !!(
+    supabaseError && (
+      supabaseError.code === 'PGRST116' || 
+      supabaseError.code === '42P01' ||
+      supabaseError.message?.toLowerCase().includes('relation') || 
+      supabaseError.message?.toLowerCase().includes('not find') ||
+      supabaseError.message?.toLowerCase().includes('schema cache')
+    )
+  );
+  const transactions = isUsingFallback ? localTransactions : supabaseTransactions;
+  const loading = isUsingFallback ? false : supabaseLoading;
 
   const handleAddTransaction = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,10 +53,18 @@ export default function Financial() {
         return;
       }
 
-      await insert({
+      const transactionData = {
         ...newTransaction,
-        amount: amount
-      });
+        amount: amount,
+        id: isUsingFallback ? Math.random().toString(36).substr(2, 9) : undefined
+      };
+
+      if (isUsingFallback) {
+        setLocalTransactions([transactionData, ...localTransactions]);
+      } else {
+        await insert(transactionData);
+      }
+
       setIsModalOpen(false);
       setNewTransaction({
         description: '',
@@ -53,6 +76,16 @@ export default function Financial() {
     } catch (err: any) {
       console.error(err);
       alert(`Erro ao salvar transação: ${err.message || 'Erro desconhecido'}`);
+    }
+  };
+
+  const handleDelete = async (id: string | number) => {
+    if (confirm('Tem certeza que deseja excluir esta transação?')) {
+      if (isUsingFallback) {
+        setLocalTransactions(localTransactions.filter(t => t.id !== id));
+      } else {
+        await remove(id);
+      }
     }
   };
 
@@ -205,7 +238,7 @@ export default function Financial() {
                       {t.type === 'income' ? '+' : '-'} R$ {t.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <button onClick={() => remove(t.id)} className="p-2 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button onClick={() => handleDelete(t.id)} className="p-2 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
                         <Trash2 size={18} />
                       </button>
                     </td>

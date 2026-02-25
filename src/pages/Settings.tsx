@@ -17,13 +17,22 @@ export default function Settings() {
     slug: ""
   });
   
+  const [localLogo, setLocalLogo] = useLocalStorage('beauty_agenda_local_logo', '');
+
   const [extraSettings, setExtraSettings] = useLocalStorage('beauty_agenda_extra_settings', { 
     description: '', 
-    blockedPeriods: [] as {start: string, end: string}[] 
+    blockedPeriods: [] as {start: string, end: string, reason: string}[],
+    intervals: [] as {start: string, end: string, label: string}[]
   });
 
   const [newBlockStart, setNewBlockStart] = useState('');
   const [newBlockEnd, setNewBlockEnd] = useState('');
+  const [newBlockReason, setNewBlockReason] = useState('Férias');
+  
+  const [newIntervalStart, setNewIntervalStart] = useState('12:00');
+  const [newIntervalEnd, setNewIntervalEnd] = useState('13:00');
+  const [newIntervalLabel, setNewIntervalLabel] = useState('Almoço');
+
   const [deliveryFee, setDeliveryFee] = useLocalStorage('delivery_fee', 15.00);
 
   const [loading, setLoading] = useState(true);
@@ -46,7 +55,12 @@ export default function Settings() {
         .single();
 
       if (error && error.code !== 'PGRST116') throw error;
-      if (data) setProfile(data);
+      if (data) {
+        setProfile({
+          ...data,
+          logo_url: data.logo_url || localLogo
+        });
+      }
     } catch (err) {
       console.error('Error fetching profile:', err);
     } finally {
@@ -67,15 +81,30 @@ export default function Settings() {
       // Remove fields that might cause issues if they don't exist in the DB
       const { created_at, updated_at, slug, ...profileToSave } = profile;
 
-      const { error } = await supabase
-        .from('profiles')
-        .upsert({ 
-          ...profileToSave, 
-          id: user.id, 
-          updated_at: new Date().toISOString() 
-        });
+      const attemptSave = async (payload: any): Promise<void> => {
+        const { error } = await supabase
+          .from('profiles')
+          .upsert({ 
+            ...payload, 
+            id: user.id, 
+            updated_at: new Date().toISOString() 
+          });
 
-      if (error) throw error;
+        if (error) {
+          if (error.code === '42703') {
+            const match = error.message.match(/column "([^"]+)"/);
+            const missingColumn = match ? match[1] : null;
+            if (missingColumn && payload[missingColumn] !== undefined) {
+              console.warn(`Removing missing column "${missingColumn}" from profile save`);
+              const { [missingColumn]: _, ...newPayload } = payload;
+              return attemptSave(newPayload);
+            }
+          }
+          throw error;
+        }
+      };
+
+      await attemptSave(profileToSave);
       alert('Perfil atualizado com sucesso!');
     } catch (err: any) {
       console.error('Error saving profile:', err);
@@ -89,10 +118,11 @@ export default function Settings() {
     if (newBlockStart && newBlockEnd) {
       setExtraSettings({
         ...extraSettings,
-        blockedPeriods: [...extraSettings.blockedPeriods, { start: newBlockStart, end: newBlockEnd }]
+        blockedPeriods: [...(extraSettings.blockedPeriods || []), { start: newBlockStart, end: newBlockEnd, reason: newBlockReason }]
       });
       setNewBlockStart('');
       setNewBlockEnd('');
+      setNewBlockReason('Férias');
     }
   };
 
@@ -105,6 +135,24 @@ export default function Settings() {
     });
   };
 
+  const handleAddInterval = () => {
+    if (newIntervalStart && newIntervalEnd) {
+      setExtraSettings({
+        ...extraSettings,
+        intervals: [...(extraSettings.intervals || []), { start: newIntervalStart, end: newIntervalEnd, label: newIntervalLabel }]
+      });
+    }
+  };
+
+  const handleRemoveInterval = (index: number) => {
+    const newIntervals = [...extraSettings.intervals];
+    newIntervals.splice(index, 1);
+    setExtraSettings({
+      ...extraSettings,
+      intervals: newIntervals
+    });
+  };
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate('/');
@@ -114,6 +162,19 @@ export default function Settings() {
     const link = `${window.location.origin}/p/${profile.slug}`;
     navigator.clipboard.writeText(link);
     alert('Link da página pública copiado!');
+  };
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64 = reader.result as string;
+        setProfile({ ...profile, logo_url: base64 });
+        setLocalLogo(base64);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   if (loading) {
@@ -155,7 +216,12 @@ export default function Settings() {
               </div>
               <label className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded-full">
                 <Camera className="text-white" size={28} />
-                <input type="file" className="hidden" accept="image/*" />
+                <input 
+                  type="file" 
+                  className="hidden" 
+                  accept="image/*" 
+                  onChange={handleLogoUpload}
+                />
               </label>
             </div>
             <p className="text-[10px] text-gray-500 mt-4 uppercase tracking-[0.15em] font-semibold">Logotipo do Studio</p>
@@ -262,6 +328,158 @@ export default function Settings() {
                   className="w-full pl-12 pr-4 py-3.5 rounded-[1.5rem] border border-gray-100 bg-[#f5f2ed]/50 focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all min-h-[120px] text-sm text-gray-700 resize-none"
                   placeholder="Conte um pouco sobre o seu studio..."
                 />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-gray-100/50 space-y-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                <CalendarOff size={20} />
+              </div>
+              <h3 className="font-display font-medium text-lg text-gray-900">Bloqueios de Agenda</h3>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-[#f5f2ed]/50 rounded-2xl border border-gray-100">
+                <div>
+                  <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-[0.15em] mb-2 ml-1">Início</label>
+                  <input 
+                    type="date" 
+                    value={newBlockStart}
+                    onChange={e => setNewBlockStart(e.target.value)}
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-100 bg-white focus:border-primary outline-none transition-all text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-[0.15em] mb-2 ml-1">Fim</label>
+                  <input 
+                    type="date" 
+                    value={newBlockEnd}
+                    onChange={e => setNewBlockEnd(e.target.value)}
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-100 bg-white focus:border-primary outline-none transition-all text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-[0.15em] mb-2 ml-1">Motivo</label>
+                  <div className="flex gap-2">
+                    <input 
+                      type="text" 
+                      value={newBlockReason}
+                      onChange={e => setNewBlockReason(e.target.value)}
+                      className="flex-1 px-4 py-2.5 rounded-xl border border-gray-100 bg-white focus:border-primary outline-none transition-all text-sm"
+                      placeholder="Ex: Férias"
+                    />
+                    <button 
+                      type="button"
+                      onClick={handleAddBlock}
+                      className="bg-primary text-white p-2.5 rounded-xl hover:bg-primary-dark transition-colors"
+                    >
+                      <Plus size={20} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                {extraSettings.blockedPeriods?.map((block: any, index: number) => (
+                  <div key={index} className="flex items-center justify-between p-4 rounded-xl border border-gray-100 bg-white group">
+                    <div className="flex items-center gap-4">
+                      <div className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center text-red-500">
+                        <CalendarOff size={16} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-gray-900">{block.reason}</p>
+                        <p className="text-xs text-gray-500">
+                          {new Date(block.start).toLocaleDateString('pt-BR')} até {new Date(block.end).toLocaleDateString('pt-BR')}
+                        </p>
+                      </div>
+                    </div>
+                    <button 
+                      type="button"
+                      onClick={() => handleRemoveBlock(index)}
+                      className="p-2 text-gray-400 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-gray-100/50 space-y-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                <Clock size={20} />
+              </div>
+              <h3 className="font-display font-medium text-lg text-gray-900">Intervalos Diários</h3>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-[#f5f2ed]/50 rounded-2xl border border-gray-100">
+                <div>
+                  <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-[0.15em] mb-2 ml-1">Início</label>
+                  <input 
+                    type="time" 
+                    value={newIntervalStart}
+                    onChange={e => setNewIntervalStart(e.target.value)}
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-100 bg-white focus:border-primary outline-none transition-all text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-[0.15em] mb-2 ml-1">Fim</label>
+                  <input 
+                    type="time" 
+                    value={newIntervalEnd}
+                    onChange={e => setNewIntervalEnd(e.target.value)}
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-100 bg-white focus:border-primary outline-none transition-all text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-[0.15em] mb-2 ml-1">Identificação</label>
+                  <div className="flex gap-2">
+                    <input 
+                      type="text" 
+                      value={newIntervalLabel}
+                      onChange={e => setNewIntervalLabel(e.target.value)}
+                      className="flex-1 px-4 py-2.5 rounded-xl border border-gray-100 bg-white focus:border-primary outline-none transition-all text-sm"
+                      placeholder="Ex: Almoço"
+                    />
+                    <button 
+                      type="button"
+                      onClick={handleAddInterval}
+                      className="bg-primary text-white p-2.5 rounded-xl hover:bg-primary-dark transition-colors"
+                    >
+                      <Plus size={20} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                {extraSettings.intervals?.map((interval: any, index: number) => (
+                  <div key={index} className="flex items-center justify-between p-4 rounded-xl border border-gray-100 bg-white group">
+                    <div className="flex items-center gap-4">
+                      <div className="w-8 h-8 rounded-full bg-orange-50 flex items-center justify-center text-orange-500">
+                        <Clock size={16} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-gray-900">{interval.label}</p>
+                        <p className="text-xs text-gray-500">
+                          Todos os dias: {interval.start} às {interval.end}
+                        </p>
+                      </div>
+                    </div>
+                    <button 
+                      type="button"
+                      onClick={() => handleRemoveInterval(index)}
+                      className="p-2 text-gray-400 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
