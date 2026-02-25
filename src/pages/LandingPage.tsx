@@ -224,13 +224,21 @@ export default function LandingPage() {
           <div className="flex items-center gap-4 pt-4">
             <div className="flex -space-x-3">
               {[1, 2, 3, 4].map((i) => (
-                <img 
+                <div 
                   key={i} 
-                  src={`https://picsum.photos/seed/${i + 10}/100/100`} 
-                  alt="User" 
-                  className="w-10 h-10 rounded-full border-2 border-white object-cover" 
-                  referrerPolicy="no-referrer"
-                />
+                  className="w-10 h-10 rounded-full border-2 border-white bg-gray-200 overflow-hidden flex items-center justify-center"
+                >
+                  <img 
+                    src={`https://picsum.photos/seed/${i + 10}/100/100`} 
+                    alt="User" 
+                    className="w-full h-full object-cover" 
+                    referrerPolicy="no-referrer"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                      (e.target as HTMLImageElement).parentElement!.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>';
+                    }}
+                  />
+                </div>
               ))}
             </div>
             <p className="text-sm text-gray-600">

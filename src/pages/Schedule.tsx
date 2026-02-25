@@ -15,7 +15,8 @@ import {
   LayoutGrid,
   Columns,
   CalendarDays,
-  CalendarOff
+  CalendarOff,
+  Printer
 } from 'lucide-react';
 import { 
   format, 
@@ -40,8 +41,10 @@ export default function Schedule() {
   const { data: clients } = useSupabaseData<any>('clients');
   const { data: services } = useSupabaseData<any>('services');
   const { data: products } = useSupabaseData<any>('products');
+  const { data: collaborators } = useSupabaseData<any>('collaborators');
   const [extraSettings] = useLocalStorage('beauty_agenda_extra_settings', { 
     description: '', 
+    businessHours: { start: '08:00', end: '20:00' },
     blockedPeriods: [] as {start: string, end: string, reason: string}[],
     intervals: [] as {start: string, end: string, label: string}[]
   });
@@ -52,13 +55,93 @@ export default function Schedule() {
   const [newAppointment, setNewAppointment] = useState({
     client_id: '',
     service_id: '',
+    collaborator_id: '',
     date: format(selectedDate, 'yyyy-MM-dd'),
-    time: '09:00',
+    time: extraSettings.businessHours?.start || '08:00',
     status: 'pending',
     additional_items: [] as Array<{ product_id: string, quantity: number }>
   });
   const [selectedProduct, setSelectedProduct] = useState('');
   const [selectedProductQuantity, setSelectedProductQuantity] = useState(1);
+
+  const handlePrintReceipt = (app: any) => {
+    const client = clients?.find((c: any) => c.id === app.client_id);
+    const service = services?.find((s: any) => s.id === app.service_id);
+    
+    let itemsHtml = `
+      <tr>
+        <td style="padding: 4px 0;">${service?.name || 'Serviço'}</td>
+        <td style="text-align: right;">R$ ${service?.price?.toFixed(2) || '0.00'}</td>
+      </tr>
+    `;
+    
+    let total = service?.price || 0;
+
+    if (app.additional_items && app.additional_items.length > 0) {
+      app.additional_items.forEach((item: any) => {
+        const product = products?.find((p: any) => p.id === item.product_id);
+        if (product) {
+          const itemTotal = product.price * item.quantity;
+          total += itemTotal;
+          itemsHtml += `
+            <tr>
+              <td style="padding: 4px 0;">${item.quantity}x ${product.name}</td>
+              <td style="text-align: right;">R$ ${itemTotal.toFixed(2)}</td>
+            </tr>
+          `;
+        }
+      });
+    }
+
+    const printWindow = window.open('', '_blank', 'width=300,height=600');
+    if (!printWindow) return;
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Recibo</title>
+          <style>
+            body { font-family: monospace; font-size: 12px; margin: 0; padding: 20px; width: 260px; }
+            .header { text-align: center; margin-bottom: 20px; border-bottom: 1px dashed #000; padding-bottom: 10px; }
+            .title { font-size: 16px; font-weight: bold; margin-bottom: 5px; }
+            .info { margin-bottom: 20px; border-bottom: 1px dashed #000; padding-bottom: 10px; }
+            .items { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+            .total { font-size: 14px; font-weight: bold; text-align: right; border-top: 1px dashed #000; padding-top: 10px; }
+            .footer { text-align: center; margin-top: 30px; font-size: 10px; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="title">BEAUTY AGENDA</div>
+            <div>Recibo Não Fiscal</div>
+            <div>Data: ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR')}</div>
+          </div>
+          
+          <div class="info">
+            <div><strong>Cliente:</strong> ${client?.name || 'Não informado'}</div>
+            <div><strong>Data Agendamento:</strong> ${new Date(app.date).toLocaleDateString('pt-BR')} às ${app.time}</div>
+          </div>
+
+          <table class="items">
+            ${itemsHtml}
+          </table>
+
+          <div class="total">
+            TOTAL: R$ ${total.toFixed(2)}
+          </div>
+
+          <div class="footer">
+            Obrigado pela preferência!<br>
+            Volte sempre.
+          </div>
+          <script>
+            window.onload = function() { window.print(); window.close(); }
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
 
   const isDateBlocked = (date: Date) => {
     return extraSettings.blockedPeriods?.some(block => {
@@ -110,8 +193,9 @@ export default function Schedule() {
       setNewAppointment({
         client_id: '',
         service_id: '',
+        collaborator_id: '',
         date: format(selectedDate, 'yyyy-MM-dd'),
-        time: '09:00',
+        time: extraSettings.businessHours?.start || '08:00',
         status: 'pending',
         additional_items: []
       });
@@ -123,7 +207,14 @@ export default function Schedule() {
     }
   };
 
-  const hours = Array.from({ length: 13 }, (_, i) => `${(i + 8).toString().padStart(2, '0')}:00`);
+  const generateHours = () => {
+    const startHour = parseInt(extraSettings.businessHours?.start?.split(':')[0] || '8');
+    const endHour = parseInt(extraSettings.businessHours?.end?.split(':')[0] || '20');
+    const length = endHour - startHour + 1;
+    return Array.from({ length: length > 0 ? length : 13 }, (_, i) => `${(i + startHour).toString().padStart(2, '0')}:00`);
+  };
+
+  const hours = generateHours();
 
   const renderHeader = () => (
     <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -236,6 +327,9 @@ export default function Schedule() {
                               <span className={`px-2 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full ${app.status === 'confirmed' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
                                 {app.status === 'confirmed' ? 'Confirmado' : 'Pendente'}
                               </span>
+                              <button onClick={() => handlePrintReceipt(app)} className="p-2 text-gray-400 hover:text-primary transition-colors" title="Imprimir Recibo">
+                                <Printer size={16} />
+                              </button>
                               <button className="p-2 text-gray-400 hover:text-gray-600">
                                 <MoreVertical size={16} />
                               </button>
@@ -525,6 +619,20 @@ export default function Schedule() {
                   <option value="">Selecione um serviço</option>
                   {services?.map((s: any) => (
                     <option key={s.id} value={s.id}>{s.name} - R$ {s.price}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Colaborador (Opcional)</label>
+                <select 
+                  className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                  value={newAppointment.collaborator_id || ''}
+                  onChange={(e) => setNewAppointment({...newAppointment, collaborator_id: e.target.value})}
+                >
+                  <option value="">Selecione um colaborador</option>
+                  {collaborators?.map((c: any) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
                   ))}
                 </select>
               </div>

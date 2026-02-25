@@ -137,11 +137,40 @@ export default function PublicPage() {
     e.preventDefault();
     setBooking(true);
     try {
+      // First, get or create the client
+      let clientId = null;
+      
+      const { data: existingClients, error: searchError } = await supabase
+        .from('clients')
+        .select('id')
+        .eq('user_id', establishment.id)
+        .eq('phone', clientInfo.phone)
+        .limit(1);
+
+      if (searchError) throw searchError;
+
+      if (existingClients && existingClients.length > 0) {
+        clientId = existingClients[0].id;
+      } else {
+        const { data: newClient, error: createError } = await supabase
+          .from('clients')
+          .insert([{
+            user_id: establishment.id,
+            name: clientInfo.name,
+            phone: clientInfo.phone,
+            email: ''
+          }])
+          .select()
+          .single();
+          
+        if (createError) throw createError;
+        clientId = newClient.id;
+      }
+
       const { error } = await supabase.from('appointments').insert([{
         user_id: establishment.id,
         service_id: selectedService.id,
-        client_name: clientInfo.name,
-        client_phone: clientInfo.phone,
+        client_id: clientId,
         date: selectedDate,
         time: selectedTime,
         status: 'pending'
@@ -423,20 +452,27 @@ export default function PublicPage() {
               <div>
                 <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Horário</label>
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-                  {['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00'].filter(time => {
-                    if (!extraSettings.intervals) return true;
-                    return !extraSettings.intervals.some((interval: any) => {
-                      return time >= interval.start && time < interval.end;
-                    });
-                  }).map((time) => (
-                    <button 
-                      key={time}
-                      onClick={() => setSelectedTime(time)}
-                      className={`py-3 rounded-xl text-sm font-bold transition-all ${selectedTime === time ? 'bg-[#C6A84B] text-white shadow-lg shadow-[#C6A84B]/20' : 'bg-[#faf9f6] text-gray-600 hover:bg-gray-100'}`}
-                    >
-                      {time}
-                    </button>
-                  ))}
+                  {(() => {
+                    const startHour = parseInt(extraSettings?.businessHours?.start?.split(':')[0] || '8');
+                    const endHour = parseInt(extraSettings?.businessHours?.end?.split(':')[0] || '20');
+                    const length = endHour - startHour + 1;
+                    const availableHours = Array.from({ length: length > 0 ? length : 13 }, (_, i) => `${(i + startHour).toString().padStart(2, '0')}:00`);
+                    
+                    return availableHours.filter(time => {
+                      if (!extraSettings?.intervals) return true;
+                      return !extraSettings.intervals.some((interval: any) => {
+                        return time >= interval.start && time < interval.end;
+                      });
+                    }).map((time) => (
+                      <button 
+                        key={time}
+                        onClick={() => setSelectedTime(time)}
+                        className={`py-3 rounded-xl text-sm font-bold transition-all ${selectedTime === time ? 'bg-[#C6A84B] text-white shadow-lg shadow-[#C6A84B]/20' : 'bg-[#faf9f6] text-gray-600 hover:bg-gray-100'}`}
+                      >
+                        {time}
+                      </button>
+                    ));
+                  })()}
                 </div>
               </div>
 

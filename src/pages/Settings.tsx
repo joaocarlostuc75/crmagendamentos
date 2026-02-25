@@ -22,6 +22,7 @@ export default function Settings() {
   const [extraSettings, setExtraSettings] = useLocalStorage('beauty_agenda_extra_settings', { 
     description: '', 
     cep: '',
+    businessHours: { start: '08:00', end: '20:00' },
     blockedPeriods: [] as {start: string, end: string, reason: string}[],
     intervals: [] as {start: string, end: string, label: string}[]
   });
@@ -348,7 +349,7 @@ export default function Settings() {
             </div>
 
             <div>
-              <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-[0.15em] mb-2 ml-1">Horário de Funcionamento</label>
+              <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-[0.15em] mb-2 ml-1">Horário de Funcionamento (Texto)</label>
               <div className="relative">
                 <Clock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                 <input 
@@ -358,6 +359,32 @@ export default function Settings() {
                   className="w-full pl-12 pr-4 py-3.5 rounded-[1.5rem] border border-gray-100 bg-[#f5f2ed]/50 focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all text-sm text-gray-700"
                   placeholder="Ex: Seg-Sáb: 09:00 - 19:00"
                 />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-[0.15em] mb-2 ml-1">Horário de Funcionamento (Agenda)</label>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="relative">
+                  <Clock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                  <input 
+                    type="time" 
+                    value={extraSettings.businessHours?.start || '08:00'}
+                    onChange={e => setExtraSettings({...extraSettings, businessHours: { ...extraSettings.businessHours, start: e.target.value }})}
+                    className="w-full pl-12 pr-4 py-3.5 rounded-[1.5rem] border border-gray-100 bg-[#f5f2ed]/50 focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all text-sm text-gray-700"
+                  />
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-gray-400 font-bold uppercase">Abertura</span>
+                </div>
+                <div className="relative">
+                  <Clock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                  <input 
+                    type="time" 
+                    value={extraSettings.businessHours?.end || '20:00'}
+                    onChange={e => setExtraSettings({...extraSettings, businessHours: { ...extraSettings.businessHours, end: e.target.value }})}
+                    className="w-full pl-12 pr-4 py-3.5 rounded-[1.5rem] border border-gray-100 bg-[#f5f2ed]/50 focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all text-sm text-gray-700"
+                  />
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-gray-400 font-bold uppercase">Fechamento</span>
+                </div>
               </div>
             </div>
             

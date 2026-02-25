@@ -17,6 +17,8 @@ import {
 
 export default function Collaborators() {
   const { data: collaborators, loading, insert, update, remove } = useSupabaseData<any>('collaborators');
+  const { data: appointments } = useSupabaseData<any>('appointments');
+  const { data: services } = useSupabaseData<any>('services');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCollaborator, setEditingCollaborator] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -28,6 +30,21 @@ export default function Collaborators() {
     commission: '30',
     image_url: ''
   });
+
+  const calculateCommission = (collaboratorId: string, commissionRate: number) => {
+    if (!appointments || !services) return 0;
+
+    const collaboratorAppointments = appointments.filter((app: any) => 
+      app.collaborator_id === collaboratorId && app.status === 'confirmed'
+    );
+
+    const totalServiceValue = collaboratorAppointments.reduce((total: number, app: any) => {
+      const service = services.find((s: any) => s.id === app.service_id);
+      return total + (service?.price || 0);
+    }, 0);
+
+    return totalServiceValue * (commissionRate / 100);
+  };
 
   const handleOpenModal = (collab: any = null) => {
     if (collab) {
@@ -186,6 +203,14 @@ export default function Collaborators() {
                     <span>Comissão</span>
                   </div>
                   <span className="font-bold text-gray-900">{collab.commission || 0}%</span>
+                </div>
+                <div className="flex items-center justify-between text-sm text-gray-600 pt-2 border-t border-gray-50">
+                  <div className="flex items-center gap-3">
+                    <span className="font-bold text-gray-900">A Pagar</span>
+                  </div>
+                  <span className="font-bold text-green-600">
+                    R$ {calculateCommission(collab.id, collab.commission || 0).toFixed(2)}
+                  </span>
                 </div>
               </div>
 

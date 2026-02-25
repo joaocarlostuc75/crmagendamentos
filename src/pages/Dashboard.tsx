@@ -43,28 +43,62 @@ const StatCard = ({ title, value, icon: Icon, trend, trendValue, color }: any) =
 export default function Dashboard() {
   const { data: appointments } = useSupabaseData<any>('appointments');
   const { data: clients } = useSupabaseData<any>('clients');
+  const { data: services } = useSupabaseData<any>('services');
   const { data: financial } = useSupabaseData<any>('financial_transactions');
   const { data: orders } = useSupabaseData<any>('orders');
 
-  // Mock data for charts if real data is empty
-  const chartData = [
-    { name: 'Seg', valor: 400 },
-    { name: 'Ter', valor: 300 },
-    { name: 'Qua', valor: 600 },
-    { name: 'Qui', valor: 800 },
-    { name: 'Sex', valor: 500 },
-    { name: 'Sáb', valor: 900 },
-    { name: 'Dom', valor: 200 },
-  ];
+  const { data: collaborators } = useSupabaseData<any>('collaborators');
 
-  const revenueData = [
-    { name: 'Jan', revenue: 4000 },
-    { name: 'Fev', revenue: 3000 },
-    { name: 'Mar', revenue: 5000 },
-    { name: 'Abr', revenue: 4500 },
-    { name: 'Mai', revenue: 6000 },
-    { name: 'Jun', revenue: 5500 },
-  ];
+  const totalIncome = financial?.filter((t: any) => t.type === 'income').reduce((acc: number, t: any) => acc + t.amount, 0) || 0;
+  const totalExpense = financial?.filter((t: any) => t.type === 'expense').reduce((acc: number, t: any) => acc + t.amount, 0) || 0;
+  const balance = totalIncome - totalExpense;
+
+  const ticketMedio = appointments?.length ? (totalIncome / appointments.length).toFixed(2) : '0.00';
+
+  const totalCommissions = appointments?.reduce((acc: number, app: any) => {
+    if (app.status !== 'confirmed' || !app.collaborator_id) return acc;
+    const service = services?.find((s: any) => s.id === app.service_id);
+    const collaborator = collaborators?.find((c: any) => c.id === app.collaborator_id);
+    if (!service || !collaborator) return acc;
+    return acc + (service.price * (collaborator.commission / 100));
+  }, 0) || 0;
+
+  // Calculate appointments per day for the current week
+  const getAppointmentsPerDay = () => {
+    const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+    const counts = [0, 0, 0, 0, 0, 0, 0];
+    
+    appointments?.forEach((app: any) => {
+      const date = new Date(app.date);
+      const dayIndex = date.getDay();
+      counts[dayIndex]++;
+    });
+
+    return days.map((day, index) => ({ name: day, valor: counts[index] }));
+  };
+
+  const chartData = getAppointmentsPerDay();
+
+  // Calculate revenue per month for the current year
+  const getRevenuePerMonth = () => {
+    const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+    const revenues = new Array(12).fill(0);
+
+    financial?.filter((t: any) => t.type === 'income').forEach((t: any) => {
+      const date = new Date(t.date);
+      const monthIndex = date.getMonth();
+      revenues[monthIndex] += t.amount;
+    });
+
+    return months.map((month, index) => ({ name: month, revenue: revenues[index] }));
+  };
+
+  const revenueData = getRevenuePerMonth();
+
+  const recentAppointments = appointments?.slice(0, 5).sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime()) || [];
+  const recentActivity = [...(appointments || []), ...(orders || [])]
+    .sort((a: any, b: any) => new Date(b.created_at || b.date).getTime() - new Date(a.created_at || a.date).getTime())
+    .slice(0, 5);
 
   return (
     <div className="p-4 md:p-8 space-y-8 bg-gray-50 min-h-screen">
@@ -101,15 +135,23 @@ export default function Dashboard() {
         />
         <StatCard 
           title="Faturamento" 
-          value="R$ 12.450" 
+          value={`R$ ${totalIncome.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} 
           icon={DollarSign} 
           trend="up" 
           trendValue="15%" 
           color="bg-green-500" 
         />
         <StatCard 
+          title="Comissões" 
+          value={`R$ ${totalCommissions.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} 
+          icon={Users} 
+          trend="up" 
+          trendValue="5%" 
+          color="bg-purple-500" 
+        />
+        <StatCard 
           title="Ticket Médio" 
-          value="R$ 185" 
+          value={`R$ ${parseFloat(ticketMedio).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} 
           icon={TrendingUp} 
           trend="down" 
           trendValue="3%" 
@@ -180,23 +222,33 @@ export default function Dashboard() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {[1, 2, 3, 4].map((i) => (
-                  <tr key={i} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-gray-200 flex-shrink-0" />
-                        <span className="text-sm font-medium text-gray-900">Cliente {i}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">Corte & Escova</td>
-                    <td className="px-6 py-4 text-sm text-gray-600">14:30</td>
-                    <td className="px-6 py-4">
-                      <span className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full bg-green-100 text-green-700">
-                        Confirmado
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+                {recentAppointments.length === 0 ? (
+                  <tr><td colSpan={4} className="px-6 py-8 text-center text-gray-500">Nenhum agendamento recente.</td></tr>
+                ) : (
+                  recentAppointments.map((app: any) => (
+                    <tr key={app.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-gray-200 flex-shrink-0 flex items-center justify-center text-gray-500">
+                            <Users size={16} />
+                          </div>
+                          <span className="text-sm font-medium text-gray-900">
+                            {clients?.find((c: any) => c.id === app.client_id)?.name || 'Cliente'}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-600">
+                        {services?.find((s: any) => s.id === app.service_id)?.name || 'Serviço'}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-600">{app.time}</td>
+                      <td className="px-6 py-4">
+                        <span className={`px-2 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full ${app.status === 'confirmed' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
+                          {app.status === 'confirmed' ? 'Confirmado' : 'Pendente'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -206,17 +258,25 @@ export default function Dashboard() {
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
           <h3 className="text-lg font-bold text-gray-900 mb-6">Atividade Recente</h3>
           <div className="space-y-6">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="flex gap-4">
-                <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-500 flex-shrink-0">
-                  <Clock size={20} />
+            {recentActivity.length === 0 ? (
+              <p className="text-center text-gray-500 py-4">Nenhuma atividade recente.</p>
+            ) : (
+              recentActivity.map((item: any, index: number) => (
+                <div key={index} className="flex gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-500 flex-shrink-0">
+                    {item.customer_name ? <ShoppingBag size={20} /> : <Clock size={20} />}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">
+                      {item.customer_name ? `Novo pedido de ${item.customer_name}` : `Novo agendamento`}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      {new Date(item.created_at || item.date).toLocaleDateString('pt-BR')}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-900">Novo agendamento realizado</p>
-                  <p className="text-xs text-gray-500 mt-0.5">Há 5 minutos</p>
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
       </div>
