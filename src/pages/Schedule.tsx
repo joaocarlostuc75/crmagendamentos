@@ -39,6 +39,7 @@ export default function Schedule() {
   const { data: appointments, loading, insert, update, remove } = useSupabaseData<any>('appointments');
   const { data: clients } = useSupabaseData<any>('clients');
   const { data: services } = useSupabaseData<any>('services');
+  const { data: products } = useSupabaseData<any>('products');
   const [extraSettings] = useLocalStorage('beauty_agenda_extra_settings', { 
     description: '', 
     blockedPeriods: [] as {start: string, end: string, reason: string}[],
@@ -53,8 +54,11 @@ export default function Schedule() {
     service_id: '',
     date: format(selectedDate, 'yyyy-MM-dd'),
     time: '09:00',
-    status: 'pending'
+    status: 'pending',
+    additional_items: [] as Array<{ product_id: string, quantity: number }>
   });
+  const [selectedProduct, setSelectedProduct] = useState('');
+  const [selectedProductQuantity, setSelectedProductQuantity] = useState(1);
 
   const isDateBlocked = (date: Date) => {
     return extraSettings.blockedPeriods?.some(block => {
@@ -98,15 +102,21 @@ export default function Schedule() {
     }
 
     try {
-      await insert(newAppointment);
+      await insert({
+        ...newAppointment,
+        additional_items: newAppointment.additional_items
+      });
       setIsModalOpen(false);
       setNewAppointment({
         client_id: '',
         service_id: '',
         date: format(selectedDate, 'yyyy-MM-dd'),
         time: '09:00',
-        status: 'pending'
+        status: 'pending',
+        additional_items: []
       });
+      setSelectedProduct('');
+      setSelectedProductQuantity(1);
     } catch (err: any) {
       console.error(err);
       alert(`Erro ao salvar agendamento: ${err.message || 'Erro desconhecido'}`);
@@ -215,6 +225,11 @@ export default function Schedule() {
                                   <Scissors size={12} />
                                   {services?.find((s: any) => s.id === app.service_id)?.name || 'Serviço'}
                                 </p>
+                                {app.additional_items && app.additional_items.length > 0 && (
+                                  <p className="text-[10px] text-gray-400 mt-1">
+                                    + {app.additional_items.length} produto(s)
+                                  </p>
+                                )}
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
@@ -535,6 +550,89 @@ export default function Schedule() {
                     required
                   />
                 </div>
+              </div>
+
+              <div className="pt-4 border-t border-gray-100">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Adicionar Produtos (Opcional)</label>
+                <div className="flex gap-2 mb-4">
+                  <select 
+                    className="flex-1 p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                    value={selectedProduct}
+                    onChange={(e) => setSelectedProduct(e.target.value)}
+                  >
+                    <option value="">Selecione um produto</option>
+                    {products?.map((p: any) => (
+                      <option key={p.id} value={p.id}>{p.name} - R$ {p.price}</option>
+                    ))}
+                  </select>
+                  <input 
+                    type="number"
+                    min="1"
+                    className="w-20 p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                    value={selectedProductQuantity}
+                    onChange={(e) => setSelectedProductQuantity(parseInt(e.target.value) || 1)}
+                  />
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      if (selectedProduct) {
+                        const product = products?.find((p: any) => p.id === selectedProduct);
+                        if (product) {
+                          setNewAppointment(prev => {
+                            const existing = prev.additional_items.find(item => item.product_id === selectedProduct);
+                            if (existing) {
+                              return {
+                                ...prev,
+                                additional_items: prev.additional_items.map(item => 
+                                  item.product_id === selectedProduct 
+                                    ? { ...item, quantity: item.quantity + selectedProductQuantity }
+                                    : item
+                                )
+                              };
+                            }
+                            return {
+                              ...prev,
+                              additional_items: [...prev.additional_items, { product_id: selectedProduct, quantity: selectedProductQuantity }]
+                            };
+                          });
+                          setSelectedProduct('');
+                          setSelectedProductQuantity(1);
+                        }
+                      }
+                    }}
+                    className="bg-primary/10 text-primary px-4 rounded-xl font-bold hover:bg-primary/20 transition-colors"
+                  >
+                    <Plus size={20} />
+                  </button>
+                </div>
+
+                {newAppointment.additional_items.length > 0 && (
+                  <div className="space-y-2 mb-4">
+                    {newAppointment.additional_items.map((item, index) => {
+                      const product = products?.find((p: any) => p.id === item.product_id);
+                      return (
+                        <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded-lg text-sm">
+                          <span className="font-medium text-gray-700">{item.quantity}x {product?.name}</span>
+                          <div className="flex items-center gap-3">
+                            <span className="text-gray-500">R$ {(product?.price * item.quantity).toFixed(2)}</span>
+                            <button 
+                              type="button"
+                              onClick={() => {
+                                setNewAppointment(prev => ({
+                                  ...prev,
+                                  additional_items: prev.additional_items.filter((_, i) => i !== index)
+                                }));
+                              }}
+                              className="text-red-400 hover:text-red-600"
+                            >
+                              <X size={16} />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               <div className="pt-4">

@@ -11,7 +11,8 @@ import {
   Phone,
   MapPin,
   Instagram,
-  ShoppingBag
+  ShoppingBag,
+  X
 } from 'lucide-react';
 
 export default function PublicPage() {
@@ -32,6 +33,75 @@ export default function PublicPage() {
     const saved = localStorage.getItem('beauty_agenda_extra_settings');
     return saved ? JSON.parse(saved) : { intervals: [] };
   });
+
+  const [cart, setCart] = useState<Array<{ product: any, quantity: number }>>([]);
+  const [isCartOpen, setIsCartOpen] = useState(false);
+  const [checkoutStep, setCheckoutStep] = useState(1);
+  const [deliveryMethod, setDeliveryMethod] = useState<'pickup' | 'delivery'>('pickup');
+  const [deliveryAddress, setDeliveryAddress] = useState('');
+  const [orderSuccess, setOrderSuccess] = useState(false);
+
+  const addToCart = (product: any) => {
+    setCart(prev => {
+      const existing = prev.find(item => item.product.id === product.id);
+      if (existing) {
+        return prev.map(item => item.product.id === product.id ? { ...item, quantity: item.quantity + 1 } : item);
+      }
+      return [...prev, { product, quantity: 1 }];
+    });
+    setIsCartOpen(true);
+  };
+
+  const removeFromCart = (productId: string) => {
+    setCart(prev => prev.filter(item => item.product.id !== productId));
+  };
+
+  const updateQuantity = (productId: string, delta: number) => {
+    setCart(prev => prev.map(item => {
+      if (item.product.id === productId) {
+        const newQuantity = Math.max(1, item.quantity + delta);
+        return { ...item, quantity: newQuantity };
+      }
+      return item;
+    }));
+  };
+
+  const cartTotal = cart.reduce((acc, item) => acc + (item.product.price * item.quantity), 0);
+
+  const handleCheckout = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBooking(true);
+    try {
+      const orderItems = cart.map(item => ({
+        product_id: item.product.id,
+        name: item.product.name,
+        price: item.product.price,
+        quantity: item.quantity
+      }));
+
+      const { error } = await supabase.from('orders').insert([{
+        user_id: establishment.id,
+        customer_name: clientInfo.name,
+        customer_phone: clientInfo.phone,
+        customer_email: '',
+        delivery_method: deliveryMethod,
+        delivery_address: deliveryMethod === 'delivery' ? deliveryAddress : null,
+        total_amount: cartTotal,
+        items: orderItems,
+        status: 'pending'
+      }]);
+
+      if (error) throw error;
+      setOrderSuccess(true);
+      setCart([]);
+      setIsCartOpen(false);
+    } catch (err) {
+      console.error(err);
+      alert('Erro ao finalizar pedido. Tente novamente.');
+    } finally {
+      setBooking(false);
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -118,6 +188,31 @@ export default function PublicPage() {
     </div>
   );
 
+  if (orderSuccess) return (
+    <div className="min-h-screen flex items-center justify-center bg-[#fdfbf7] p-4">
+      <div className="bg-white p-8 rounded-3xl shadow-xl max-w-md w-full text-center space-y-6 border border-[#f3eee2]">
+        <div className="flex justify-center">
+          <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center text-green-500">
+            <CheckCircle2 size={48} />
+          </div>
+        </div>
+        <h2 className="text-2xl font-display font-bold text-gray-900">Pedido Realizado!</h2>
+        <p className="text-gray-600">
+          Seu pedido foi recebido com sucesso.
+        </p>
+        <p className="text-sm text-gray-500">
+          Entraremos em contato em breve para confirmar os detalhes.
+        </p>
+        <button 
+          onClick={() => window.location.reload()}
+          className="w-full bg-[#C6A84B] text-white py-4 rounded-2xl font-bold shadow-lg shadow-[#C6A84B]/20 hover:bg-[#b59639] transition-all"
+        >
+          VOLTAR AO INÍCIO
+        </button>
+      </div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-[#fdfbf7] font-sans">
       {/* Header */}
@@ -141,7 +236,7 @@ export default function PublicPage() {
               <p className="text-[10px] text-[#C6A84B] font-bold uppercase tracking-widest">Agendamento Online</p>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
             {establishment?.instagram && (
               <a 
                 href={`https://instagram.com/${establishment.instagram.replace('@', '')}`} 
@@ -160,6 +255,17 @@ export default function PublicPage() {
                 <Phone size={20} />
               </a>
             )}
+            <button 
+              onClick={() => setIsCartOpen(true)}
+              className="p-2 text-gray-400 hover:text-[#C6A84B] relative"
+            >
+              <ShoppingBag size={20} />
+              {cart.length > 0 && (
+                <span className="absolute top-0 right-0 w-4 h-4 bg-[#C6A84B] text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                  {cart.reduce((acc, item) => acc + item.quantity, 0)}
+                </span>
+              )}
+            </button>
           </div>
         </div>
       </header>
@@ -274,9 +380,18 @@ export default function PublicPage() {
                         </p>
                         <div className="flex items-center justify-between pt-4 border-t border-gray-50">
                           <span className="text-2xl font-display font-bold text-[#C6A84B]">R$ {product.price}</span>
-                          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                            {product.stock > 0 ? 'Em estoque' : 'Esgotado'}
-                          </span>
+                          {product.stock > 0 ? (
+                            <button 
+                              onClick={() => addToCart(product)}
+                              className="bg-[#C6A84B] text-white px-4 py-2 rounded-xl text-sm font-bold shadow-md hover:bg-[#b59639] transition-colors"
+                            >
+                              COMPRAR
+                            </button>
+                          ) : (
+                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                              Esgotado
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -480,6 +595,198 @@ export default function PublicPage() {
           </div>
         </div>
       </footer>
+
+      {/* Cart Modal */}
+      {isCartOpen && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex justify-end">
+          <div className="bg-white w-full max-w-md h-full shadow-2xl animate-in slide-in-from-right duration-300 flex flex-col">
+            <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-white">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-[#C6A84B]/10 rounded-full flex items-center justify-center text-[#C6A84B]">
+                  <ShoppingBag size={20} />
+                </div>
+                <h2 className="text-xl font-display font-bold text-gray-900">Seu Carrinho</h2>
+              </div>
+              <button 
+                onClick={() => setIsCartOpen(false)}
+                className="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-50 transition-colors"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-6">
+              {cart.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-gray-400 space-y-4">
+                  <ShoppingBag size={64} className="opacity-20" />
+                  <p className="font-medium">Seu carrinho está vazio</p>
+                  <button 
+                    onClick={() => {
+                      setIsCartOpen(false);
+                      setActiveTab('products');
+                    }}
+                    className="text-[#C6A84B] font-bold hover:underline"
+                  >
+                    Ver produtos
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {checkoutStep === 1 ? (
+                    <div className="space-y-4">
+                      {cart.map((item) => (
+                        <div key={item.product.id} className="flex gap-4 bg-gray-50 p-4 rounded-2xl">
+                          <div className="w-20 h-20 bg-white rounded-xl overflow-hidden flex-shrink-0">
+                            {item.product.image_url ? (
+                              <img src={item.product.image_url} alt={item.product.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-gray-300">
+                                <ShoppingBag size={24} />
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex-1 flex flex-col justify-between">
+                            <div>
+                              <h4 className="font-bold text-gray-900 line-clamp-1">{item.product.name}</h4>
+                              <p className="text-[#C6A84B] font-bold">R$ {item.product.price}</p>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3 bg-white px-3 py-1 rounded-lg border border-gray-200">
+                                <button 
+                                  onClick={() => updateQuantity(item.product.id, -1)}
+                                  className="text-gray-500 hover:text-gray-900"
+                                >
+                                  -
+                                </button>
+                                <span className="font-bold text-sm w-4 text-center">{item.quantity}</span>
+                                <button 
+                                  onClick={() => updateQuantity(item.product.id, 1)}
+                                  className="text-gray-500 hover:text-gray-900"
+                                >
+                                  +
+                                </button>
+                              </div>
+                              <button 
+                                onClick={() => removeFromCart(item.product.id)}
+                                className="text-red-400 hover:text-red-600 text-sm font-bold"
+                              >
+                                Remover
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <form id="checkout-form" onSubmit={handleCheckout} className="space-y-6">
+                      <div className="space-y-4">
+                        <h3 className="font-bold text-gray-900">Seus Dados</h3>
+                        <div>
+                          <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Nome Completo</label>
+                          <input 
+                            type="text"
+                            required
+                            value={clientInfo.name}
+                            onChange={(e) => setClientInfo({...clientInfo, name: e.target.value})}
+                            className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-[#C6A84B]/20 focus:border-[#C6A84B] transition-all"
+                            placeholder="Seu nome"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Telefone (WhatsApp)</label>
+                          <input 
+                            type="tel"
+                            required
+                            value={clientInfo.phone}
+                            onChange={(e) => setClientInfo({...clientInfo, phone: e.target.value})}
+                            className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-[#C6A84B]/20 focus:border-[#C6A84B] transition-all"
+                            placeholder="(11) 99999-9999"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-4 pt-4 border-t border-gray-100">
+                        <h3 className="font-bold text-gray-900">Entrega</h3>
+                        <div className="grid grid-cols-2 gap-3">
+                          <button
+                            type="button"
+                            onClick={() => setDeliveryMethod('pickup')}
+                            className={`p-3 rounded-xl border-2 text-sm font-bold transition-all ${deliveryMethod === 'pickup' ? 'border-[#C6A84B] bg-[#C6A84B]/5 text-[#C6A84B]' : 'border-gray-100 text-gray-500 hover:border-gray-200'}`}
+                          >
+                            Retirar no Local
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setDeliveryMethod('delivery')}
+                            className={`p-3 rounded-xl border-2 text-sm font-bold transition-all ${deliveryMethod === 'delivery' ? 'border-[#C6A84B] bg-[#C6A84B]/5 text-[#C6A84B]' : 'border-gray-100 text-gray-500 hover:border-gray-200'}`}
+                          >
+                            Receber em Casa
+                          </button>
+                        </div>
+
+                        {deliveryMethod === 'delivery' && (
+                          <div className="animate-in fade-in slide-in-from-top-2">
+                            <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Endereço Completo</label>
+                            <textarea 
+                              required
+                              value={deliveryAddress}
+                              onChange={(e) => setDeliveryAddress(e.target.value)}
+                              className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-[#C6A84B]/20 focus:border-[#C6A84B] transition-all h-24 resize-none"
+                              placeholder="Rua, Número, Bairro, CEP, Complemento..."
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </form>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {cart.length > 0 && (
+              <div className="p-6 bg-white border-t border-gray-100 space-y-4">
+                <div className="flex items-center justify-between text-lg">
+                  <span className="font-bold text-gray-500">Total</span>
+                  <span className="font-display font-bold text-2xl text-gray-900">
+                    R$ {cartTotal.toFixed(2)}
+                  </span>
+                </div>
+                
+                {checkoutStep === 1 ? (
+                  <button 
+                    onClick={() => setCheckoutStep(2)}
+                    className="w-full bg-[#C6A84B] text-white py-4 rounded-2xl font-bold shadow-lg shadow-[#C6A84B]/20 hover:bg-[#b59639] transition-all flex items-center justify-center gap-2"
+                  >
+                    FINALIZAR COMPRA
+                    <ChevronRight size={20} />
+                  </button>
+                ) : (
+                  <div className="flex gap-3">
+                    <button 
+                      onClick={() => setCheckoutStep(1)}
+                      className="px-6 py-4 rounded-2xl font-bold text-gray-500 bg-gray-100 hover:bg-gray-200 transition-colors"
+                    >
+                      VOLTAR
+                    </button>
+                    <button 
+                      type="submit"
+                      form="checkout-form"
+                      disabled={booking}
+                      className="flex-1 bg-[#C6A84B] text-white py-4 rounded-2xl font-bold shadow-lg shadow-[#C6A84B]/20 hover:bg-[#b59639] transition-all disabled:opacity-70 flex items-center justify-center"
+                    >
+                      {booking ? (
+                        <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      ) : (
+                        'CONFIRMAR PEDIDO'
+                      )}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

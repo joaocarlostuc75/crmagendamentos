@@ -179,16 +179,30 @@ export default function Settings() {
     alert('Link da página pública copiado!');
   };
 
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64 = reader.result as string;
-        setProfile({ ...profile, logo_url: base64 });
-        setLocalLogo(base64);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random()}.${fileExt}`;
+      const filePath = `logos/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('images')
+        .upload(filePath, file);
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      const { data } = supabase.storage.from('images').getPublicUrl(filePath);
+      
+      setProfile({ ...profile, logo_url: data.publicUrl });
+      setLocalLogo(data.publicUrl);
+    } catch (error: any) {
+      console.error('Error uploading logo:', error);
+      alert('Erro ao fazer upload da logo. Certifique-se de que o Bucket "images" está configurado no Supabase.');
     }
   };
 

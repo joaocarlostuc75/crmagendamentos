@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useSupabaseData } from '../hooks/useSupabase';
+import { supabase } from '../lib/supabase';
 import { 
   Plus, 
   Users, 
@@ -46,14 +47,30 @@ export default function Collaborators() {
     setIsModalOpen(true);
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setNewCollaborator({ ...newCollaborator, image_url: reader.result as string });
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    try {
+      // Show loading state (optional, but good UX)
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random()}.${fileExt}`;
+      const filePath = `collaborators/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('images')
+        .upload(filePath, file);
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      const { data } = supabase.storage.from('images').getPublicUrl(filePath);
+      
+      setNewCollaborator({ ...newCollaborator, image_url: data.publicUrl });
+    } catch (error: any) {
+      console.error('Error uploading image:', error);
+      alert('Erro ao fazer upload da imagem. Certifique-se de que o Bucket "images" está configurado no Supabase.');
     }
   };
 

@@ -44,6 +44,7 @@ export default function Dashboard() {
   const { data: appointments } = useSupabaseData<any>('appointments');
   const { data: clients } = useSupabaseData<any>('clients');
   const { data: financial } = useSupabaseData<any>('financial_transactions');
+  const { data: orders } = useSupabaseData<any>('orders');
 
   // Mock data for charts if real data is empty
   const chartData = [
@@ -73,7 +74,7 @@ export default function Dashboard() {
       </header>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
         <StatCard 
           title="Total de Clientes" 
           value={clients?.length || 0} 
@@ -89,6 +90,14 @@ export default function Dashboard() {
           trend="up" 
           trendValue="8%" 
           color="bg-purple-500" 
+        />
+        <StatCard 
+          title="Pedidos" 
+          value={orders?.length || 0} 
+          icon={ShoppingBag} 
+          trend="up" 
+          trendValue="5%" 
+          color="bg-pink-500" 
         />
         <StatCard 
           title="Faturamento" 

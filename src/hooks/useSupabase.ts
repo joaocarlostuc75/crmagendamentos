@@ -94,9 +94,8 @@ export function useSupabaseData<T>(table: string, query: string = '', initialDat
           const missingColumn = match ? match[1] : null;
           
           if (missingColumn && payload[missingColumn] !== undefined) {
-            console.warn(`Removing missing column "${missingColumn}" from insert into ${table}`);
-            const { [missingColumn]: _, ...newPayload } = payload;
-            return attemptInsert(newPayload);
+            console.error(`Missing column "${missingColumn}" in table ${table}. Please run the SQL migration script.`);
+            throw new Error(`A coluna "${missingColumn}" não existe no banco de dados. Por favor, execute o script SQL no Supabase para criar as colunas necessárias.`);
           }
           
           if (payload.user_id) {
@@ -150,9 +149,8 @@ export function useSupabaseData<T>(table: string, query: string = '', initialDat
           const missingColumn = match ? match[1] : null;
           
           if (missingColumn && payload[missingColumn] !== undefined) {
-            console.warn(`Removing missing column "${missingColumn}" from update of ${table}`);
-            const { [missingColumn]: _, ...newPayload } = payload;
-            return attemptUpdate(newPayload);
+            console.error(`Missing column "${missingColumn}" in table ${table}. Please run the SQL migration script.`);
+            throw new Error(`A coluna "${missingColumn}" não existe no banco de dados. Por favor, execute o script SQL no Supabase para criar as colunas necessárias.`);
           }
         }
         
