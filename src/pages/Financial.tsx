@@ -30,9 +30,17 @@ export default function Financial() {
   const handleAddTransaction = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const amountStr = newTransaction.amount.replace(',', '.');
+      const amount = parseFloat(amountStr);
+      
+      if (isNaN(amount)) {
+        alert('Por favor, insira um valor válido.');
+        return;
+      }
+
       await insert({
         ...newTransaction,
-        amount: parseFloat(newTransaction.amount)
+        amount: amount
       });
       setIsModalOpen(false);
       setNewTransaction({
@@ -42,8 +50,9 @@ export default function Financial() {
         category: 'Serviço',
         date: new Date().toISOString().split('T')[0]
       });
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      alert(`Erro ao salvar transação: ${err.message || 'Erro desconhecido'}`);
     }
   };
 

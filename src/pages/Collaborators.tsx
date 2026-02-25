@@ -73,9 +73,9 @@ export default function Collaborators() {
       setIsModalOpen(false);
       setNewCollaborator({ name: '', email: '', phone: '', specialty: 'Cabelo', commission: '30', image_url: '' });
       setEditingCollaborator(null);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert('Erro ao salvar colaborador.');
+      alert(`Erro ao salvar colaborador: ${err.message || 'Erro desconhecido'}`);
     }
   };
 

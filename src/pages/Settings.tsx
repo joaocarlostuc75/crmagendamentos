@@ -65,7 +65,7 @@ export default function Settings() {
       }
 
       // Remove fields that might cause issues if they don't exist in the DB
-      const { created_at, updated_at, ...profileToSave } = profile;
+      const { created_at, updated_at, slug, ...profileToSave } = profile;
 
       const { error } = await supabase
         .from('profiles')

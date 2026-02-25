@@ -73,9 +73,9 @@ export default function Services() {
       setIsModalOpen(false);
       setNewService({ name: '', description: '', price: '', duration: '60', category: 'Cabelo', image_url: '' });
       setEditingService(null);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert('Erro ao salvar serviço. Verifique os dados e tente novamente.');
+      alert(`Erro ao salvar serviço: ${err.message || 'Erro desconhecido'}`);
     }
   };
 

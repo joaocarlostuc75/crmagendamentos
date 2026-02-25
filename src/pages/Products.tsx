@@ -73,9 +73,9 @@ export default function Products() {
       setIsModalOpen(false);
       setNewProduct({ name: '', description: '', price: '', stock: '0', category: 'Cabelo', image_url: '' });
       setEditingProduct(null);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert('Erro ao salvar produto. Verifique os dados e tente novamente.');
+      alert(`Erro ao salvar produto: ${err.message || 'Erro desconhecido'}`);
     }
   };
 

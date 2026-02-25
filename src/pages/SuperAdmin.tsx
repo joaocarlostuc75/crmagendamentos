@@ -236,9 +236,9 @@ const SettingsPanel = () => {
         await refresh(); // Refresh to get the new ID
       }
       alert('Configuração salva com sucesso!');
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert('Erro ao salvar configuração.');
+      alert(`Erro ao salvar configuração: ${err.message || 'Erro desconhecido'}`);
     } finally {
       setSavingKey(null);
     }
