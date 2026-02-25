@@ -450,17 +450,31 @@ export default function PublicPage() {
             </div>
 
             {establishment?.address && (
-              <div className="w-full h-80 rounded-[2.5rem] overflow-hidden border-8 border-white shadow-2xl relative group">
-                <iframe 
-                  width="100%" 
-                  height="100%" 
-                  frameBorder="0" 
-                  style={{ border: 0, filter: 'grayscale(0.2) contrast(1.1)' }}
-                  src={`https://maps.google.com/maps?q=${encodeURIComponent(`${establishment.address}${extraSettings?.cep ? ` - CEP: ${extraSettings.cep}` : ''}`)}&t=&z=16&ie=UTF8&iwloc=&output=embed`}
-                  allowFullScreen
-                  loading="lazy"
-                ></iframe>
-                <div className="absolute inset-0 pointer-events-none border border-black/5 rounded-[2rem]"></div>
+              <div className="space-y-4">
+                <div className="w-full h-80 rounded-[2.5rem] overflow-hidden border-8 border-white shadow-2xl relative group bg-gray-100">
+                  <iframe 
+                    width="100%" 
+                    height="100%" 
+                    frameBorder="0" 
+                    style={{ border: 0, filter: 'grayscale(0.2) contrast(1.1)' }}
+                    src={`https://maps.google.com/maps?q=${encodeURIComponent(`${establishment.address}${extraSettings?.cep ? ` ${extraSettings.cep}` : ''}`)}&hl=pt-BR&z=15&output=embed`}
+                    allowFullScreen
+                    loading="lazy"
+                    title="Mapa de localização"
+                  ></iframe>
+                  <div className="absolute inset-0 pointer-events-none border border-black/5 rounded-[2rem] z-20"></div>
+                </div>
+                <div className="text-center">
+                  <a 
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${establishment.address}${extraSettings?.cep ? ` ${extraSettings.cep}` : ''}`)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 text-sm font-bold text-[#C6A84B] hover:text-[#b59639] transition-colors"
+                  >
+                    <MapPin size={16} />
+                    Abrir no Google Maps
+                  </a>
+                </div>
               </div>
             )}
           </div>

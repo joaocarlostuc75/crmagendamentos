@@ -90,7 +90,7 @@ export default function Settings() {
         extra_settings: extraSettings
       };
 
-      const attemptSave = async (p: any): Promise<void> => {
+      const attemptSave = async (p: any): Promise<boolean> => {
         const { error } = await supabase
           .from('profiles')
           .upsert({ 
@@ -100,21 +100,27 @@ export default function Settings() {
           });
 
         if (error) {
-          if (error.code === '42703') {
-            const match = error.message.match(/column "([^"]+)"/);
+          if (error.code === '42703' || error.message?.includes('column') || error.message?.includes('schema cache') || error.message?.includes('not find')) {
+            const match = error.message.match(/column "([^"]+)"/) || error.message.match(/find the '([^']+)' column/);
             const missingColumn = match ? match[1] : null;
             if (missingColumn && p[missingColumn] !== undefined) {
               console.warn(`Removing missing column "${missingColumn}" from profile save`);
               const { [missingColumn]: _, ...newPayload } = p;
-              return attemptSave(newPayload);
+              await attemptSave(newPayload);
+              return true; // Indicates a column was removed
             }
           }
           throw error;
         }
+        return false;
       };
 
-      await attemptSave(payload);
-      alert('Perfil atualizado com sucesso!');
+      const removedColumn = await attemptSave(payload);
+      if (removedColumn) {
+        alert('Perfil salvo parcialmente! O banco de dados precisa ser atualizado para salvar configurações extras (CEP, Intervalos). Execute o script SQL fornecido no Supabase.');
+      } else {
+        alert('Perfil atualizado com sucesso!');
+      }
     } catch (err: any) {
       console.error('Error saving profile:', err);
       alert(`Erro ao salvar perfil: ${err.message || 'Erro desconhecido'}`);
