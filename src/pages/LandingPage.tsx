@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Check, Star, Calendar, ShoppingBag, BarChart3, Users, MessageCircle, Smartphone, Globe, ShieldCheck, ArrowRight, Menu, X } from 'lucide-react';
 import { useSupabaseData } from '../hooks/useSupabase';
+import { supabase } from '../lib/supabase';
 
 const plans = [
   {
@@ -96,7 +97,6 @@ const features = [
 ];
 
 export default function LandingPage() {
-  const { data: featuresData } = useSupabaseData<any>('system_features');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [contactInfo, setContactInfo] = useState({
     phone: '(11) 99999-9999',
@@ -105,16 +105,22 @@ export default function LandingPage() {
   });
 
   useEffect(() => {
-    if (featuresData) {
-      const newInfo = { ...contactInfo };
-      featuresData.forEach(f => {
-        if (f.name === 'setting_phone') newInfo.phone = f.description;
-        if (f.name === 'setting_instagram') newInfo.instagram = f.description;
-        if (f.name === 'setting_website') newInfo.website = f.description;
-      });
-      setContactInfo(newInfo);
-    }
-  }, [featuresData]);
+    const fetchProfileInfo = async () => {
+      try {
+        const { data: profile } = await supabase.from('profiles').select('*').limit(1).single();
+        if (profile) {
+          setContactInfo({
+            phone: profile.phone || '(11) 99999-9999',
+            instagram: profile.instagram || '@beautyagenda',
+            website: profile.website || 'beautyagenda.com'
+          });
+        }
+      } catch (err) {
+        console.error('Error fetching profile for landing page:', err);
+      }
+    };
+    fetchProfileInfo();
+  }, []);
 
   return (
     <div className="bg-[#FDFBF7] min-h-screen font-body text-[#1A1A1A]">

@@ -120,8 +120,24 @@ export default function PublicPage() {
             </div>
           </div>
           <div className="flex gap-2">
-            <button className="p-2 text-gray-400 hover:text-[#C6A84B]"><Instagram size={20} /></button>
-            <button className="p-2 text-gray-400 hover:text-[#C6A84B]"><Phone size={20} /></button>
+            {establishment?.instagram && (
+              <a 
+                href={`https://instagram.com/${establishment.instagram.replace('@', '')}`} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="p-2 text-gray-400 hover:text-[#C6A84B]"
+              >
+                <Instagram size={20} />
+              </a>
+            )}
+            {establishment?.phone && (
+              <a 
+                href={`tel:${establishment.phone}`}
+                className="p-2 text-gray-400 hover:text-[#C6A84B]"
+              >
+                <Phone size={20} />
+              </a>
+            )}
           </div>
         </div>
       </header>
@@ -287,15 +303,19 @@ export default function PublicPage() {
 
       {/* Footer */}
       <footer className="max-w-4xl mx-auto px-4 py-12 border-t border-[#f3eee2] mt-12 text-center">
-        <div className="flex justify-center gap-6 mb-6">
-          <div className="flex items-center gap-2 text-xs text-gray-500">
-            <MapPin size={14} className="text-[#C6A84B]" />
-            <span>Endereço do Salão</span>
-          </div>
-          <div className="flex items-center gap-2 text-xs text-gray-500">
-            <Phone size={14} className="text-[#C6A84B]" />
-            <span>(00) 0000-0000</span>
-          </div>
+        <div className="flex flex-col sm:flex-row justify-center gap-4 sm:gap-8 mb-6">
+          {establishment?.address && (
+            <div className="flex items-center justify-center gap-2 text-xs text-gray-500">
+              <MapPin size={14} className="text-[#C6A84B]" />
+              <span>{establishment.address}</span>
+            </div>
+          )}
+          {establishment?.phone && (
+            <div className="flex items-center justify-center gap-2 text-xs text-gray-500">
+              <Phone size={14} className="text-[#C6A84B]" />
+              <span>{establishment.phone}</span>
+            </div>
+          )}
         </div>
         <p className="text-[10px] text-gray-400 uppercase tracking-widest">
           Powered by BeautyAgenda
