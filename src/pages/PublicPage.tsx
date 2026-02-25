@@ -10,13 +10,16 @@ import {
   ArrowLeft,
   Phone,
   MapPin,
-  Instagram
+  Instagram,
+  ShoppingBag
 } from 'lucide-react';
 
 export default function PublicPage() {
   const { slug } = useParams();
   const [establishment, setEstablishment] = useState<any>(null);
   const [services, setServices] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState<'services' | 'products'>('services');
   const [step, setStep] = useState(1);
   const [selectedService, setSelectedService] = useState<any>(null);
   const [selectedDate, setSelectedDate] = useState('');
@@ -43,11 +46,13 @@ export default function PublicPage() {
         }
 
         if (profile) {
-          const { data: svcs } = await supabase
-            .from('services')
-            .select('*')
-            .eq('user_id', profile.id);
-          setServices(svcs || []);
+          const [svcsRes, prodsRes] = await Promise.all([
+            supabase.from('services').select('*').eq('user_id', profile.id),
+            supabase.from('products').select('*').eq('user_id', profile.id)
+          ]);
+          
+          setServices(svcsRes.data || []);
+          setProducts(prodsRes.data || []);
         }
       } catch (err) {
         console.error(err);
@@ -171,37 +176,114 @@ export default function PublicPage() {
         </div>
 
         {step === 1 && (
-          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <h2 className="text-2xl font-display font-bold text-gray-900">Selecione o Serviço</h2>
-            <div className="grid gap-4">
-              {services.map((service) => (
+          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <h2 className="text-3xl font-display font-bold text-gray-900">O que você procura hoje?</h2>
+              
+              <div className="flex bg-white p-1 rounded-2xl border border-[#f3eee2] shadow-sm self-start">
                 <button 
-                  key={service.id}
-                  onClick={() => {
-                    setSelectedService(service);
-                    setStep(2);
-                  }}
-                  className="bg-white p-5 rounded-2xl border border-[#f3eee2] shadow-sm hover:shadow-md hover:border-[#C6A84B]/30 transition-all text-left flex justify-between items-center group"
+                  onClick={() => setActiveTab('services')}
+                  className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${activeTab === 'services' ? 'bg-[#C6A84B] text-white shadow-md' : 'text-gray-500 hover:text-gray-700'}`}
                 >
-                  <div className="flex gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-[#C6A84B]/5 flex items-center justify-center text-[#C6A84B]">
-                      <Scissors size={24} />
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-gray-900">{service.name}</h3>
-                      <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
-                        <span className="flex items-center gap-1"><Clock size={12} /> {service.duration} min</span>
-                        <span className="flex items-center gap-1"><CheckCircle2 size={12} className="text-green-500" /> Disponível</span>
+                  Serviços
+                </button>
+                <button 
+                  onClick={() => setActiveTab('products')}
+                  className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${activeTab === 'products' ? 'bg-[#C6A84B] text-white shadow-md' : 'text-gray-500 hover:text-gray-700'}`}
+                >
+                  Produtos
+                </button>
+              </div>
+            </div>
+
+            {activeTab === 'services' ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                {services.map((service) => (
+                  <button 
+                    key={service.id}
+                    onClick={() => {
+                      setSelectedService(service);
+                      setStep(2);
+                    }}
+                    className="bg-white group rounded-[2rem] border border-[#f3eee2] shadow-sm hover:shadow-xl hover:border-[#C6A84B]/30 transition-all text-left overflow-hidden flex flex-col"
+                  >
+                    <div className="h-48 w-full bg-gray-100 relative overflow-hidden">
+                      {service.image_url ? (
+                        <img 
+                          src={service.image_url} 
+                          alt={service.name} 
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                          referrerPolicy="no-referrer"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-[#C6A84B]/20">
+                          <Scissors size={64} />
+                        </div>
+                      )}
+                      <div className="absolute top-4 right-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-[10px] font-bold text-[#C6A84B] uppercase tracking-widest shadow-sm">
+                        {service.duration} min
                       </div>
                     </div>
+                    <div className="p-6 flex-1 flex flex-col justify-between">
+                      <div>
+                        <h3 className="font-display font-bold text-xl text-gray-900 mb-2">{service.name}</h3>
+                        <p className="text-sm text-gray-500 line-clamp-2 mb-4">
+                          {service.description || 'Um serviço exclusivo pensado para realçar sua beleza natural.'}
+                        </p>
+                      </div>
+                      <div className="flex items-center justify-between pt-4 border-t border-gray-50">
+                        <span className="text-2xl font-display font-bold text-gray-900">R$ {service.price}</span>
+                        <div className="w-10 h-10 rounded-full bg-[#C6A84B] text-white flex items-center justify-center shadow-lg shadow-[#C6A84B]/20 group-hover:translate-x-1 transition-transform">
+                          <ChevronRight size={20} />
+                        </div>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                {products.length === 0 ? (
+                  <div className="col-span-full py-12 text-center text-gray-400 font-medium">
+                    Nenhum produto disponível no momento.
                   </div>
-                  <div className="flex items-center gap-4">
-                    <span className="font-bold text-gray-900">R$ {service.price}</span>
-                    <ChevronRight size={20} className="text-gray-300 group-hover:text-[#C6A84B] transition-colors" />
-                  </div>
-                </button>
-              ))}
-            </div>
+                ) : (
+                  products.map((product) => (
+                    <div 
+                      key={product.id}
+                      className="bg-white rounded-[2rem] border border-[#f3eee2] shadow-sm overflow-hidden flex flex-col"
+                    >
+                      <div className="h-48 w-full bg-gray-100 relative overflow-hidden">
+                        {product.image_url ? (
+                          <img 
+                            src={product.image_url} 
+                            alt={product.name} 
+                            className="w-full h-full object-cover"
+                            referrerPolicy="no-referrer"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-[#C6A84B]/20">
+                            <ShoppingBag size={64} />
+                          </div>
+                        )}
+                      </div>
+                      <div className="p-6">
+                        <h3 className="font-display font-bold text-xl text-gray-900 mb-2">{product.name}</h3>
+                        <p className="text-sm text-gray-500 line-clamp-2 mb-4">
+                          {product.description || 'Produto de alta qualidade para seus cuidados diários.'}
+                        </p>
+                        <div className="flex items-center justify-between pt-4 border-t border-gray-50">
+                          <span className="text-2xl font-display font-bold text-[#C6A84B]">R$ {product.price}</span>
+                          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                            {product.stock > 0 ? 'Em estoque' : 'Esgotado'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -324,36 +406,65 @@ export default function PublicPage() {
       </main>
 
       {/* Footer */}
-      <footer className="max-w-4xl mx-auto px-4 py-12 border-t border-[#f3eee2] mt-12 text-center">
-        <div className="flex flex-col sm:flex-row justify-center gap-4 sm:gap-8 mb-6">
-          {establishment?.address && (
-            <div className="flex flex-col items-center gap-4">
-              <div className="flex items-center justify-center gap-2 text-xs text-gray-500">
-                <MapPin size={14} className="text-[#C6A84B]" />
-                <span>{establishment.address}</span>
+      <footer className="bg-white border-t border-[#f3eee2] mt-20">
+        <div className="max-w-4xl mx-auto px-4 py-16">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-start">
+            <div className="space-y-8">
+              <div>
+                <h3 className="text-2xl font-display font-bold text-gray-900 mb-6">Onde estamos</h3>
+                <div className="space-y-4">
+                  {establishment?.address && (
+                    <div className="flex items-start gap-4 p-4 rounded-2xl bg-[#fdfbf7] border border-[#f3eee2]">
+                      <div className="w-10 h-10 rounded-full bg-[#C6A84B]/10 flex items-center justify-center text-[#C6A84B] flex-shrink-0">
+                        <MapPin size={20} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-gray-900 mb-1">Endereço</p>
+                        <p className="text-sm text-gray-600 leading-relaxed">
+                          {establishment.address}
+                          {extraSettings?.cep && <><br />CEP: {extraSettings.cep}</>}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {establishment?.phone && (
+                    <div className="flex items-start gap-4 p-4 rounded-2xl bg-[#fdfbf7] border border-[#f3eee2]">
+                      <div className="w-10 h-10 rounded-full bg-[#C6A84B]/10 flex items-center justify-center text-[#C6A84B] flex-shrink-0">
+                        <Phone size={20} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-gray-900 mb-1">Contato</p>
+                        <p className="text-sm text-gray-600 leading-relaxed">{establishment.phone}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
-              <div className="w-full max-w-md h-48 rounded-2xl overflow-hidden border border-[#f3eee2] shadow-sm">
+
+              <div className="pt-8 border-t border-gray-50">
+                <p className="text-[10px] text-gray-400 uppercase tracking-[0.2em] font-bold">
+                  © {new Date().getFullYear()} {establishment?.name} • Powered by BeautyAgenda
+                </p>
+              </div>
+            </div>
+
+            {establishment?.address && (
+              <div className="w-full h-80 rounded-[2.5rem] overflow-hidden border-8 border-white shadow-2xl relative group">
                 <iframe 
                   width="100%" 
                   height="100%" 
                   frameBorder="0" 
-                  style={{ border: 0 }}
-                  src={`https://maps.google.com/maps?q=${encodeURIComponent(establishment.address)}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
+                  style={{ border: 0, filter: 'grayscale(0.2) contrast(1.1)' }}
+                  src={`https://maps.google.com/maps?q=${encodeURIComponent(`${establishment.address}${extraSettings?.cep ? ` - CEP: ${extraSettings.cep}` : ''}`)}&t=&z=16&ie=UTF8&iwloc=&output=embed`}
                   allowFullScreen
+                  loading="lazy"
                 ></iframe>
+                <div className="absolute inset-0 pointer-events-none border border-black/5 rounded-[2rem]"></div>
               </div>
-            </div>
-          )}
-          {establishment?.phone && (
-            <div className="flex items-center justify-center gap-2 text-xs text-gray-500">
-              <Phone size={14} className="text-[#C6A84B]" />
-              <span>{establishment.phone}</span>
-            </div>
-          )}
+            )}
+          </div>
         </div>
-        <p className="text-[10px] text-gray-400 uppercase tracking-widest">
-          Powered by BeautyAgenda
-        </p>
       </footer>
     </div>
   );

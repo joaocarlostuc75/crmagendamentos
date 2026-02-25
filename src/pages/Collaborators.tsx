@@ -62,7 +62,7 @@ export default function Collaborators() {
     try {
       const payload = {
         ...newCollaborator,
-        commission: parseFloat(newCollaborator.commission)
+        commission: parseFloat(newCollaborator.commission) || 0
       };
 
       if (editingCollaborator) {
@@ -90,10 +90,11 @@ export default function Collaborators() {
     }
   };
 
-  const filteredCollaborators = collaborators?.filter((c: any) => 
-    c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    c.specialty?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredCollaborators = collaborators?.filter((c: any) => {
+    if (!c) return false;
+    return (c.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+           (c.specialty || '').toLowerCase().includes(searchTerm.toLowerCase());
+  });
 
   return (
     <div className="p-4 md:p-8 space-y-6 bg-gray-50 min-h-screen">
@@ -129,8 +130,10 @@ export default function Collaborators() {
         ) : filteredCollaborators?.length === 0 ? (
           <div className="col-span-full text-center py-12 text-gray-500">Nenhum colaborador encontrado.</div>
         ) : (
-          filteredCollaborators?.map((collab: any) => (
-            <div key={collab.id} className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 hover:shadow-md transition-all group relative">
+          filteredCollaborators?.map((collab: any) => {
+            if (!collab) return null;
+            return (
+              <div key={collab.id} className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 hover:shadow-md transition-all group relative">
               <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button className="p-2 text-gray-400 hover:text-gray-600">
                   <MoreVertical size={18} />
@@ -165,7 +168,7 @@ export default function Collaborators() {
                     <Star size={16} className="text-primary" />
                     <span>Comissão</span>
                   </div>
-                  <span className="font-bold text-gray-900">{collab.commission}%</span>
+                  <span className="font-bold text-gray-900">{collab.commission || 0}%</span>
                 </div>
               </div>
 
@@ -184,7 +187,8 @@ export default function Collaborators() {
                 </button>
               </div>
             </div>
-          ))
+            );
+          })
         )}
       </div>
 

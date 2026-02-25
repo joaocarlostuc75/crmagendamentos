@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { Home, Calendar, Users, ShoppingBag, DollarSign, Settings, Shield, Users as CollaboratorsIcon, Menu, X, LogOut } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -19,10 +19,26 @@ export default function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [slug, setSlug] = useState<string>('');
+
+  useEffect(() => {
+    const fetchSlug = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data } = await supabase.from('profiles').select('slug').eq('id', user.id).single();
+        if (data?.slug) setSlug(data.slug);
+      }
+    };
+    fetchSlug();
+  }, []);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    navigate('/');
+    if (slug) {
+      navigate(`/p/${slug}`);
+    } else {
+      navigate('/');
+    }
   };
 
   return (

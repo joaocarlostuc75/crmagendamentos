@@ -21,6 +21,7 @@ export default function Settings() {
 
   const [extraSettings, setExtraSettings] = useLocalStorage('beauty_agenda_extra_settings', { 
     description: '', 
+    cep: '',
     blockedPeriods: [] as {start: string, end: string, reason: string}[],
     intervals: [] as {start: string, end: string, label: string}[]
   });
@@ -308,6 +309,20 @@ export default function Settings() {
                   onChange={e => setProfile({...profile, address: e.target.value})}
                   className="w-full pl-12 pr-4 py-3.5 rounded-[1.5rem] border border-gray-100 bg-[#f5f2ed]/50 focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all text-sm text-gray-700"
                   placeholder="Rua, Número, Bairro, Cidade"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-[0.15em] mb-2 ml-1">CEP (Para precisão do mapa)</label>
+              <div className="relative">
+                <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                <input 
+                  type="text" 
+                  value={extraSettings.cep || ''}
+                  onChange={e => setExtraSettings({...extraSettings, cep: e.target.value})}
+                  className="w-full pl-12 pr-4 py-3.5 rounded-[1.5rem] border border-gray-100 bg-[#f5f2ed]/50 focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all text-sm text-gray-700"
+                  placeholder="00000-000"
                 />
               </div>
             </div>
