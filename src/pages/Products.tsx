@@ -74,6 +74,17 @@ export default function Products() {
 
   const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (parseFloat(newProduct.price) <= 0) {
+      alert('O preço deve ser maior que zero.');
+      return;
+    }
+
+    if (parseInt(newProduct.stock) < 0) {
+      alert('O estoque não pode ser negativo.');
+      return;
+    }
+
     try {
       const payload = {
         ...newProduct,

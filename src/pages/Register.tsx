@@ -23,6 +23,20 @@ export default function Register() {
     setLoading(true);
     setError(null);
 
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      setError('Por favor, insira um e-mail válido.');
+      setLoading(false);
+      return;
+    }
+
+    const phoneRegex = /^\(?\d{2}\)?\s?\d{4,5}-?\d{4}$/;
+    if (!phoneRegex.test(formData.phone)) {
+      setError('Por favor, insira um telefone válido com DDD (ex: 11 99999-9999).');
+      setLoading(false);
+      return;
+    }
+
     try {
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,

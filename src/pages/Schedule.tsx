@@ -64,13 +64,22 @@ export default function Schedule() {
   const [selectedProduct, setSelectedProduct] = useState('');
   const [selectedProductQuantity, setSelectedProductQuantity] = useState(1);
 
+  const escapeHtml = (unsafe: string) => {
+    return unsafe
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  };
+
   const handlePrintReceipt = (app: any) => {
     const client = clients?.find((c: any) => c.id === app.client_id);
     const service = services?.find((s: any) => s.id === app.service_id);
     
     let itemsHtml = `
       <tr>
-        <td style="padding: 4px 0;">${service?.name || 'Serviço'}</td>
+        <td style="padding: 4px 0;">${escapeHtml(service?.name || 'Serviço')}</td>
         <td style="text-align: right;">R$ ${service?.price?.toFixed(2) || '0.00'}</td>
       </tr>
     `;
@@ -85,7 +94,7 @@ export default function Schedule() {
           total += itemTotal;
           itemsHtml += `
             <tr>
-              <td style="padding: 4px 0;">${item.quantity}x ${product.name}</td>
+              <td style="padding: 4px 0;">${item.quantity}x ${escapeHtml(product.name)}</td>
               <td style="text-align: right;">R$ ${itemTotal.toFixed(2)}</td>
             </tr>
           `;
@@ -118,7 +127,7 @@ export default function Schedule() {
           </div>
           
           <div class="info">
-            <div><strong>Cliente:</strong> ${client?.name || 'Não informado'}</div>
+            <div><strong>Cliente:</strong> ${escapeHtml(client?.name || 'Não informado')}</div>
             <div><strong>Data Agendamento:</strong> ${new Date(app.date).toLocaleDateString('pt-BR')} às ${app.time}</div>
           </div>
 

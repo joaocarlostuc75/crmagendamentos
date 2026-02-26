@@ -44,6 +44,13 @@ export default function Clients() {
 
   const handleAddClient = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const phoneRegex = /^\(?\d{2}\)?\s?\d{4,5}-?\d{4}$/;
+    if (!phoneRegex.test(newClient.phone)) {
+      alert('Por favor, insira um telefone válido com DDD (ex: 11 99999-9999).');
+      return;
+    }
+
     try {
       if (editingClient) {
         await update(editingClient.id, newClient);

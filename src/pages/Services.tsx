@@ -74,6 +74,17 @@ export default function Services() {
 
   const handleAddService = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (parseFloat(newService.price) <= 0) {
+      alert('O preço deve ser maior que zero.');
+      return;
+    }
+
+    if (parseInt(newService.duration) <= 0) {
+      alert('A duração deve ser maior que zero.');
+      return;
+    }
+
     try {
       const payload = {
         ...newService,

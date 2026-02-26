@@ -136,6 +136,14 @@ export default function PublicPage() {
   const handleBooking = async (e: React.FormEvent) => {
     e.preventDefault();
     setBooking(true);
+
+    const phoneRegex = /^\(?\d{2}\)?\s?\d{4,5}-?\d{4}$/;
+    if (!phoneRegex.test(clientInfo.phone)) {
+      alert('Por favor, insira um telefone válido com DDD (ex: 11 99999-9999).');
+      setBooking(false);
+      return;
+    }
+
     try {
       // First, get or create the client
       let clientId = null;
